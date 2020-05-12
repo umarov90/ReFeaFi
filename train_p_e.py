@@ -1,5 +1,6 @@
 import os
-# os.environ["CUDA_VISIBLE_DEVICES"]="-1"
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
 import tensorflow as tf
 import numpy as np
 from math import sqrt
@@ -195,13 +196,13 @@ def model(x, y, keep_ratio, in_training_mode):
                         kernel_initializer='he_normal',
                         kernel_regularizer=regularizers.l2(L2_WEIGHT_DECAY))(x)
     lc1 = layers.Activation('relu')(lc1)
-    resnet = resnet_block(lc1, size=num_blocks, kernel_size=3, filters=2*filter_num,
+    resnet = resnet_block(lc1, size=num_blocks, kernel_size=3, filters=2 * filter_num,
                           stage=2, conv_strides=1, training=in_training_mode)
 
-    resnet = resnet_block(resnet, size=num_blocks, kernel_size=3, filters=2*filter_num,
+    resnet = resnet_block(resnet, size=num_blocks, kernel_size=3, filters=2 * filter_num,
                           stage=3, conv_strides=2, training=in_training_mode)
 
-    resnet = resnet_block(resnet, size=num_blocks, kernel_size=3, filters=2*filter_num,
+    resnet = resnet_block(resnet, size=num_blocks, kernel_size=3, filters=2 * filter_num,
                           stage=4, conv_strides=2, training=in_training_mode)
 
     print(num_blocks)
