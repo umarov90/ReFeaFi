@@ -4,6 +4,7 @@ import sys
 import re
 import math
 import pickle
+import os
 
 
 def find_nearest(array, value):
@@ -40,33 +41,45 @@ def clean_seq(s):
 
 
 def parse_gct(file):
-    pred_promoters = {}
-    pred_enhancers = {}
+    preds = {}
+    meta = {}
     with open(file) as file:
         for line in file:
             vals = line.split("\t")
             pos = int(int(vals[3]) + (int(vals[4]) - int(vals[3])) / 2) - 1
-            strand = vals[6]
             chrn = vals[0]
-            ck = chrn + strand
-            if vals[2] == "promoter":
-                pred_promoters.setdefault(ck,[]).append([pos, float(vals[5])])
-            elif vals[2] == "enhancer":
-                pred_enhancers.setdefault(chrn + '.',[]).append([pos, float(vals[5])])
+            preds.setdefault(chrn,[]).append([pos, float(vals[5])])
+            if chrn + str(pos) in meta.keys():
+                print("what")
+            meta[chrn + ":" + str(pos)] = [vals[5], vals[6], line]
 
-    for key, value in pred_promoters.items():
+    for key, value in preds.items():
         value.sort()
 
-    for key, value in pred_enhancers.items():
-        value.sort()
+    return preds, meta
 
-    return pred_promoters, pred_enhancers
+def parse_gff(file):
+    gff = {}
+    with open(file) as file:
+        for line in file:
+            if line.startswith("#"):
+                continue
+            vals = line.split("\t")
+            if vals[2] != "gene":
+                continue
+            chrn = re.search('.*0(.*)\.11', vals[0])
+            start = int(vals[3])
+            end = int(vals[4])
+            pos = start + (end - start) / 2
+            gff.setdefault(chrn,[]).append(pos)
+    return gff
 
 
-def compare(cage, preds, dt, margin=500):
+def compare(cage, preds, dt, margin, meta):
     tp = 0.0
     fn = 0.0
     fp = 0.0
+    hard_list = []
     for key, value in preds.items():
         cg = [i[0] for i in cage[key]]
         cg = np.asarray(cg)
@@ -84,6 +97,10 @@ def compare(cage, preds, dt, margin=500):
             gt = find_nearest(cg, v)
             if (abs(v - gt) > margin):
                 fp = fp + 1
+                if float(meta[key + ":" + str(v)][0]) < dt:
+                    print("what")
+                hard_list.append(key + ", " + str(v) + ", " + str(abs(v - gt)) + ", " + str(meta[key + ":" + str(v)][0])
+                                 + ", " + str(meta[key + ":" + str(v)][1]) + ", " + fasta[key][v-50:v + 51])
     if (tp > 0):
         recall = tp / (tp + fn)
         precision = tp / (tp + fp)
@@ -94,58 +111,65 @@ def compare(cage, preds, dt, margin=500):
         f1 = 2.0 * ((recall * precision) / (recall + precision))
     else:
         f1 = 0
-    return fp, recall, precision, f1
+    return fp, recall, precision, f1, hard_list
 
+def parse_vcf(file):
+    vcf = {}
+    with open(file) as file:
+        for line in file:
+            if line.startswith("#"):
+                continue
+            vals = line.split("\t")
+            chrn = vals[0]
+            pos = vals[0]
+            vcf.setdefault(chrn,[]).append(pos)
+    return vcf
+
+data_folder = "/home/user/data/DeepRAG/"
+os.chdir(data_folder)
 
 np.random.seed(2504)
 half_size = 500
-good_chr = ["chr1"]
-#good_chr = ["chrX", "chrY"]
-#for i in range(2, 23):
-#    good_chr.append("chr" + str(i))
-promoters = {}
-enhancers = {}
+reg_elements = {}
 
 input_file = sys.argv[1]
-ground_truth = sys.argv[2]
 
-print("Parsing bed at " + ground_truth)
-with open(ground_truth) as file:
+with open("cage.bed") as file:
     for line in file:
         vals = line.split("\t")
         chrn = vals[0]
         strand = vals[5]
         val = 1
         chrp = int(vals[7]) - 1
-        ck = chrn + strand
-        if strand == ".":
-            enhancers.setdefault(ck,[]).append([chrp, val])
-        else:
-            promoters.setdefault(ck,[]).append([chrp, val])
+        reg_elements.setdefault(chrn,[]).append([chrp, val])
+
+with open("enhancers.bed") as file:
+    for line in file:
+        vals = line.split("\t")
+        chrn = vals[0]
+        strand = vals[5]
+        val = 1
+        chrp = int(vals[7]) - 1
+        reg_elements.setdefault(chrn,[]).append([chrp, val])
 
 print("Done ")
+genes = parse_gff("GRCh37_latest_genomic.gff")
 fasta = pickle.load(open("fasta.p", "rb"))
-
 if len(sys.argv) > 3:
     good_chr = sys.argv[3].split(",")
 else:
     good_chr = fasta.keys()
 
 margin = 500
-dt = 0.5
+dt = 0.99
 
-pred_promoters, pred_enhancers = parse_gct(input_file)
+preds, meta = parse_gct(input_file)
 
-print("Promoters")
-res = compare(promoters, pred_promoters, dt)
+res = compare(reg_elements, preds, dt, margin, meta)
 print("FP: " + str(res[0]))
 print("Recall: " + str(res[1]))
 print("Precision: " + str(res[2]))
 print("F1 Score: " + str(res[3]))
-
-print("Enahncers")
-res = compare(enhancers, pred_enhancers, dt)
-print("FP: " + str(res[0]))
-print("Recall: " + str(res[1]))
-print("Precision: " + str(res[2]))
-print("F1 Score: " + str(res[3]))
+with open("hard.csv", 'w+') as f:
+    f.write("Chr,Position,Closest peak,Score,Strand,Sequence\n")
+    f.write('\n'.join(res[4]))

@@ -2,7 +2,7 @@
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="0,1"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 import argparse
 import logging
 import math
@@ -91,15 +91,13 @@ def find_nearest(array, value):
         return array[idx]
 
 
-def pick(scores, dt, minDist):
+def pick(chr, scores, dt, minDist):
     scores.sort(key=lambda x: x[1], reverse=True)
     all_chosen = []
     rows = []
     for s in range(len(scores)):
         position = scores[s][0]
         score = scores[s][1]
-        strand = scores[s][2]
-        cl = scores[s][3]
         scaling = 1.0
         if len(all_chosen) > 0:
             fmd = abs(position - find_nearest(all_chosen, position))
@@ -107,11 +105,13 @@ def pick(scores, dt, minDist):
                 scaling = fmd / minDist
         if score * scaling >= dt:
             bisect.insort(all_chosen, position)
-            rows.append([position, score, strand, cl])
+            rows.append([chr, position, score])
     return rows
 
 
 def main():
+    data_folder = "/home/user/data/DeepRAG/"
+    os.chdir(data_folder)
     args = get_options()
 
     if None in [args.I, args.O]:
@@ -123,9 +123,8 @@ def main():
     sLen = 1001
     half_size = 500
     batch_size = 128
-    prediction_names = ["promoter", "promoter", "enhancer", "negative"]
 
-    dt1 = 0.9
+    dt1 = 0.5
     dt2 = args.T
     minDist = 500
 
@@ -203,7 +202,7 @@ def main():
             batch = []
             inds = []
             while j < len(fasta[key]) - half_size - 1:
-                if test_mode or sum(ga[key][j - half_size: j + half_size + 1]) == 0:
+                if test_mode or sum(ga[key][j - 100: j + 100 + 1]) == 0:
                     fa = encode(key, j, fasta, sLen)
                     if len(fa) == sLen:
                         batch.append(fa)
@@ -224,6 +223,7 @@ def main():
                                                                                              time.gmtime()) + "] ")
 
     out = []
+    rows = []
     new_graph = tf.Graph()
     with tf.Session(graph=new_graph) as sess:
         tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING], "models/model_predict")
@@ -235,9 +235,7 @@ def main():
         in_training_mode = tf.get_default_graph().get_tensor_by_name("in_training_mode:0")
         for key in fasta.keys():
             print("Predicting " + key)
-            rows = []
             scores = []
-            reset = 0
             m = 1
             prev_pred = -1
             for p in putative[key]:
@@ -253,19 +251,11 @@ def main():
                 mr = np.argmax(np.max(predict, axis=1))
                 mc = np.argmax(np.max(predict, axis=0))
                 if predict[mr][mc] > dt2:
-                    strand = "."
-                    if mc == 0:
-                        strand = '+'
-                    elif mc == 1:
-                        strand = '-'
                     if prev_pred != -1 and abs(inds[mr] - prev_pred) >= minDist:
-                        new_scores = pick(scores, dt2, minDist)
+                        new_scores = pick(key, scores, dt2, minDist)
                         rows.extend(new_scores)
                         scores = []
-                        reset = reset + 1
-                        # print("Predicted " + str(len(new_scores)) + " regions")
-                    scores.append([inds[mr], predict[mr][mc], strand, mc])
-                    # rows.append([inds[mr], predict[mr][mc], strand, mc])
+                    scores.append([inds[mr], predict[mr][mc]])
                     prev_pred = inds[mr]
                 if p > m * 10000000:
                     print(str(p))
@@ -273,19 +263,39 @@ def main():
 
             if len(scores) > 0:
                 scores.sort(key=lambda x: x[1], reverse=True)
-                new_scores = pick(scores, dt2, minDist)
+                new_scores = pick(key, scores, dt2, minDist)
                 rows.extend(new_scores)
-            print("Reset: " + str(reset))
             print("Prediction complete for " + key + " chromosome. Predicted " + str(
                 len(rows)) + " regulatory regions." + " [" + time.strftime("%Y-%m-%d %H:%M:%S",
                                                                            time.gmtime()) + "] ")
 
-            for row in rows:
-                out.append(key + "\t" + "DeepRAG" + "\t" + prediction_names[row[3]] + "\t" + str(
-                    row[0] - 100 + 1) + "\t" + str(
-                    row[0] + 100 + 2) + "\t" +
-                           str(row[1]) + "\t" + row[2] + "\t" + "." + "\t" +
-                           key + ":" + str(row[0] - half_size + 1) + ":" + str(row[0] + half_size + 2) + ":" + row[2])
+    strand_info = []
+    new_graph = tf.Graph()
+    with tf.Session(graph=new_graph) as sess:
+        tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING], "models/model_strand")
+        saver = tf.train.Saver()
+        saver.restore(sess, "models/model_strand/variables/variables")
+        input_x = tf.get_default_graph().get_tensor_by_name("input_prom:0")
+        y = tf.get_default_graph().get_tensor_by_name("output_prom:0")
+        kr = tf.get_default_graph().get_tensor_by_name("kr:0")
+        in_training_mode = tf.get_default_graph().get_tensor_by_name("in_training_mode:0")
+        for r in rows:
+            fa = encode(r[0], r[1], fasta, sLen)
+            predict = sess.run(y, feed_dict={input_x: [fa], kr: 1.0, in_training_mode: False})
+            mc = np.argmax(np.max(predict, axis=0))
+            if mc == 0:
+                strand_info.append("+")
+            elif mc == 1:
+                strand_info.append("-")
+            else:
+                strand_info.append(".")
+
+    for i, row in enumerate(rows):
+        out.append(row[0] + "\t" + "DeepRAG" + "\t" + "promoter/enhancer" + "\t" + str(
+            row[1] - 100 + 1) + "\t" + str(
+            row[1] + 100 + 2) + "\t" +
+                   str(row[2]) + "\t" + strand_info[i] + "\t" + "." + "\t" +
+                   row[0] + ":" + str(row[1] - half_size + 1) + ":" + str(row[1] + half_size + 2) + ":" + strand_info[i])
 
     with open(args.O, 'w+') as f:
         f.write('\n'.join(out))

@@ -23,7 +23,7 @@ import gc
 
 BATCH_NORM_DECAY = 0.997
 BATCH_NORM_EPSILON = 1e-5
-L2_WEIGHT_DECAY = 2e-6
+L2_WEIGHT_DECAY = 2e-5
 
 
 def find_nearest(array, value):
@@ -73,6 +73,7 @@ def test_mcc(predict, y_test):
         mcc = (tp * tn - fp * fn) / sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
     except Exception:
         pass
+    # (tp, tn, fp, fn, sn, sp, mcc)
     return tp, tn, fp, fn, sn, sp, mcc
 
 
@@ -96,18 +97,33 @@ def fully_connected(input, name, output_size):
 def identity_building_block(input_tensor,
                             kernel_size,
                             filters,
+                            stage,
+                            block,
                             training=None):
+    filters1 = filters
+    filters2 = filters
     bn_axis = 1
-    x = layers.Conv1D(filters, kernel_size,
-                      padding='same', use_bias=True)(input_tensor)
-    #x = layers.BatchNormalization(
-    #    axis=bn_axis, momentum=BATCH_NORM_DECAY, epsilon=BATCH_NORM_EPSILON)(x, training=training)
+    conv_name_base = 'res' + str(stage) + block + '_branch'
+    bn_name_base = 'bn' + str(stage) + block + '_branch'
+
+    x = layers.Conv1D(filters1, kernel_size,
+                      padding='same', use_bias=False,
+                      kernel_initializer='he_normal',
+                      kernel_regularizer=regularizers.l2(L2_WEIGHT_DECAY),
+                      name=conv_name_base + '2a')(input_tensor)
+    x = layers.BatchNormalization(
+        axis=bn_axis, momentum=BATCH_NORM_DECAY, epsilon=BATCH_NORM_EPSILON,
+        name=bn_name_base + '2a')(x, training=training)
     x = layers.Activation('relu')(x)
 
-    x = layers.Conv1D(filters, kernel_size,
-                      padding='same', use_bias=True)(x)
-    #x = layers.BatchNormalization(
-    #    axis=bn_axis, momentum=BATCH_NORM_DECAY, epsilon=BATCH_NORM_EPSILON)(x, training=training)
+    x = layers.Conv1D(filters2, kernel_size,
+                      padding='same', use_bias=False,
+                      kernel_initializer='he_normal',
+                      kernel_regularizer=regularizers.l2(L2_WEIGHT_DECAY),
+                      name=conv_name_base + '2b')(x)
+    x = layers.BatchNormalization(
+        axis=bn_axis, momentum=BATCH_NORM_DECAY, epsilon=BATCH_NORM_EPSILON,
+        name=bn_name_base + '2b')(x, training=training)
 
     x = layers.add([x, input_tensor])
     x = layers.Activation('relu')(x)
@@ -117,23 +133,41 @@ def identity_building_block(input_tensor,
 def conv_building_block(input_tensor,
                         kernel_size,
                         filters,
+                        stage,
+                        block,
                         strides=1,
                         training=None):
-
+    filters1 = filters
+    filters2 = filters
     bn_axis = 1
-    x = layers.Conv1D(filters, kernel_size, strides=strides,
-                      padding='same', use_bias=True)(input_tensor)
-    #x = layers.BatchNormalization(
-    #    axis=bn_axis, momentum=BATCH_NORM_DECAY, epsilon=BATCH_NORM_EPSILON)(x, training=training)
+    conv_name_base = 'res' + str(stage) + block + '_branch'
+    bn_name_base = 'bn' + str(stage) + block + '_branch'
+
+    x = layers.Conv1D(filters1, kernel_size, strides=strides,
+                      padding='same', use_bias=False,
+                      kernel_initializer='he_normal',
+                      kernel_regularizer=regularizers.l2(L2_WEIGHT_DECAY),
+                      name=conv_name_base + '2a')(input_tensor)
+    x = layers.BatchNormalization(
+        axis=bn_axis, momentum=BATCH_NORM_DECAY, epsilon=BATCH_NORM_EPSILON,
+        name=bn_name_base + '2a')(x, training=training)
     x = layers.Activation('relu')(x)
 
-    x = layers.Conv1D(filters, kernel_size, padding='same', use_bias=True)(x)
-    #x = layers.BatchNormalization(
-    #    axis=bn_axis, momentum=BATCH_NORM_DECAY, epsilon=BATCH_NORM_EPSILON)(x, training=training)
+    x = layers.Conv1D(filters2, kernel_size, padding='same', use_bias=False,
+                      kernel_initializer='he_normal',
+                      kernel_regularizer=regularizers.l2(L2_WEIGHT_DECAY),
+                      name=conv_name_base + '2b')(x)
+    x = layers.BatchNormalization(
+        axis=bn_axis, momentum=BATCH_NORM_DECAY, epsilon=BATCH_NORM_EPSILON,
+        name=bn_name_base + '2b')(x, training=training)
 
-    shortcut = layers.Conv1D(filters, 1, strides=strides, use_bias=True)(input_tensor)
-    #shortcut = layers.BatchNormalization(
-    #    axis=bn_axis, momentum=BATCH_NORM_DECAY, epsilon=BATCH_NORM_EPSILON)(shortcut, training=training)
+    shortcut = layers.Conv1D(filters2, 1, strides=strides, use_bias=False,
+                             kernel_initializer='he_normal',
+                             kernel_regularizer=regularizers.l2(L2_WEIGHT_DECAY),
+                             name=conv_name_base + '1')(input_tensor)
+    shortcut = layers.BatchNormalization(
+        axis=bn_axis, momentum=BATCH_NORM_DECAY, epsilon=BATCH_NORM_EPSILON,
+        name=bn_name_base + '1')(shortcut, training=training)
 
     x = layers.add([x, shortcut])
     x = layers.Activation('relu')(x)
@@ -144,13 +178,14 @@ def resnet_block(input_tensor,
                  size,
                  kernel_size,
                  filters,
+                 stage,
                  conv_strides,
                  training):
-    x = conv_building_block(input_tensor, kernel_size, filters,
-                            strides=conv_strides,
+    x = conv_building_block(input_tensor, kernel_size, filters, stage=stage,
+                            strides=conv_strides, block='block_0',
                             training=training)
     for i in range(size - 1):
-        x = identity_building_block(x, kernel_size, filters, training=training)
+        x = identity_building_block(x, kernel_size, filters, stage=stage, block='block_%d' % (i + 1), training=training)
     return x
 
 
@@ -158,28 +193,15 @@ def model(x, y, keep_ratio, in_training_mode):
     filter_num = 64
     num_blocks = 5
 
-    lc1 = layers.Conv1D(filter_num, num_classes, padding='same', use_bias=True)(x)
+    lc1 = layers.Conv1D(filter_num, num_classes, padding='same', use_bias=True,
+                        kernel_initializer='he_normal',
+                        kernel_regularizer=regularizers.l2(L2_WEIGHT_DECAY))(x)
     lc1 = layers.Activation('relu')(lc1)
     resnet = resnet_block(lc1, size=num_blocks, kernel_size=3, filters=2 * filter_num,
-                          conv_strides=1, training=in_training_mode)
+                          stage=2, conv_strides=1, training=in_training_mode)
 
     resnet = resnet_block(resnet, size=num_blocks, kernel_size=3, filters=2 * filter_num,
-                          conv_strides=2, training=in_training_mode)
-
-    resnet = resnet_block(resnet, size=num_blocks, kernel_size=3, filters=2 * filter_num,
-                          conv_strides=2, training=in_training_mode)
-
-    resnet = resnet_block(resnet, size=num_blocks, kernel_size=3, filters=2 * filter_num,
-                          conv_strides=2, training=in_training_mode)
-
-    resnet = resnet_block(resnet, size=num_blocks, kernel_size=3, filters=filter_num,
-                          conv_strides=2, training=in_training_mode)
-
-    resnet = resnet_block(resnet, size=num_blocks, kernel_size=3, filters=filter_num / 2,
-                          conv_strides=2, training=in_training_mode)
-
-    resnet = resnet_block(resnet, size=num_blocks, kernel_size=3, filters=filter_num / 4,
-                          conv_strides=2, training=in_training_mode)
+                          stage=3, conv_strides=2, training=in_training_mode)
 
     print(num_blocks)
     print(resnet)
@@ -187,7 +209,7 @@ def model(x, y, keep_ratio, in_training_mode):
     out, W = fully_connected(dp, "output_p", num_classes)
     loss = tf.nn.softmax_cross_entropy_with_logits_v2(labels=y, logits=out)
     out = tf.nn.softmax(out)
-    #loss = tf.add(loss, 0.00001 * tf.nn.l2_loss(W))
+    loss = tf.add(loss, 0.00001 * tf.nn.l2_loss(W))
     return out, loss
 
 
@@ -236,27 +258,27 @@ def brun(sess, x, y, a, keep_prob, in_training_mode):
 
 def un(a, m, h, seq):
     rv = -1
-    while True:
+    while (True):
         rv = randint(h, m - h)
         bad = False
         for v in a:
-            if abs(rv - v[0]) < 800:
+            if (abs(rv - v[0]) < 800):
                 bad = True
                 break
         nseq = seq[rv - h: rv + h + 1]
-        if not bad and nseq.count("N") < 400:
+        if (not bad and nseq.count("N") < 400):
             break
     return rv
 
 
 def rand_unmapped(chrn, ga, fasta, seq_len):
     half_size = int((seq_len - 1) / 2)
-    while True:
+    while (True):
         try:
             rp = randint(0, len(ga))
-            if sum(ga[rp - half_size: rp + half_size + 1]) == 0:
+            if (sum(ga[rp - 500: rp + 500 + 1]) == 0):
                 neg_mat = encode(chrn, rp, fasta, seq_len)
-                if neg_mat is None:
+                if (neg_mat is None):
                     pass
                 else:
                     return rp, neg_mat
@@ -281,110 +303,53 @@ for i in range(1, 23):
 max_features = 4
 seq_len = 1201
 out_dir = sys.argv[1]
-scan_model = sys.argv[2] == '1'
-if scan_model:
-    print("Training scan model")
-else:
-    print("Training prediction model")
-tr_dir = "fasta"
-fasta = {}
 data = []
 elens = []
-ga = {}
 overlap = 0
 enhancer_count = 0
 promoter_count = 0
-if Path("data.p").is_file():
-    data = pickle.load(open("data.p", "rb"))
-    fasta = pickle.load(open("fasta.p", "rb"))
-    ga = pickle.load(open("ga.p", "rb"))
-    print("Loaded existing data")
-else:
-    print("Parsing fasta")
-    seq = ""
-    with open("hg19.fa") as f:  # .masked
-        for line in f:
-            if (line.startswith(">")):
-                if (len(seq) != 0):
-                    if (chrn in good_chr):
-                        ga[chrn] = zeros((len(seq)), dtype=np.uint8)
-                        seq = clean_seq(seq)
-                        fasta[chrn] = seq
-                        print(chrn + " - " + str(len(seq)))
-                chrn = line.strip()[1:]
-                seq = ""
-                continue
-            else:
-                seq += line
-        if (len(seq) != 0):
-            if (chrn in good_chr):
-                ga[chrn] = zeros((len(seq)), dtype=np.uint8)
-                seq = clean_seq(seq)
-                fasta[chrn] = seq
-                print(chrn + " - " + str(len(seq)))
-    print("Done")
-    print("Parsing CAGE bed")
-    with open('cage.bed') as file:
-        for line in file:
-            vals = line.split("\t")
-            chrn = vals[0]  # [3:len(vals[0])]
-            strand = vals[5]
-            if (chrn == "chr1"):
-                continue
-            if (chrn not in good_chr):
-                continue
-            chrp = int(vals[7]) - 1
-            if strand == "+":
-                ga[chrn][chrp] = 1
-            elif strand == "-":
-                ga[chrn][chrp] = 2
-            else:
-                continue
-            promoter_count = promoter_count + 1
+fasta = pickle.load(open("fasta.p", "rb"))
+
+print("Parsing CAGE bed")
+with open('cage.bed') as file:
+    for line in file:
+        vals = line.split("\t")
+        chrn = vals[0]  # [3:len(vals[0])]
+        strand = vals[5]
+        if (chrn == "chr1"):
+            continue
+        if (chrn not in good_chr):
+            continue
+        chrp = int(vals[7]) - 1
+        label = [False, False, True]
+        if strand == "+":
+            label = [True, False, False]
+        elif strand == "-":
+            label = [False, True, False]
+        else:
+            continue
+
+        promoter_count = promoter_count + 1
+        seq_mat = encode(chrn, chrp, fasta, seq_len)
+        if (seq_mat is None):
+            pass
+        else:
+            data.append([seq_mat, label])
+with open('enhancers.bed') as file:
+    for line in file:
+        vals = line.split("\t")
+        chrn = vals[0]  # [3:len(vals[0])]
+        strand = vals[5]
+        if (chrn == "chr1"):
+            continue
+        if (chrn not in good_chr):
+            continue
+        chrp = int(vals[7]) - 1
+        if strand == ".":
             seq_mat = encode(chrn, chrp, fasta, seq_len)
-            if (seq_mat is None):
-                pass
-            else:
-                # Positive
-                data.append([seq_mat, [True, False]])
-                # Negative
-                rp, neg_mat = rand_unmapped(chrn, ga[chrn], fasta, seq_len)
-                ga[chrn][rp] = 100
-                data.append([neg_mat, [False, True]])
-    with open('enhancers.bed') as file:
-        for line in file:
-            vals = line.split("\t")
-            chrn = vals[0]  # [3:len(vals[0])]
-            strand = vals[5]
-            if (chrn == "chr1"):
-                continue
-            if (chrn not in good_chr):
-                continue
-            chrp = int(vals[7]) - 1
-            if strand == ".":
-                seq_mat = encode(chrn, chrp, fasta, seq_len)
-                data.append([seq_mat, [True, False]])
-                ga[chrn][chrp] = 3
-                enhancer_count = enhancer_count + 1
-                # Negative
-                rp, neg_mat = rand_unmapped(chrn, ga[chrn], fasta, seq_len)
-                ga[chrn][rp] = 100
-                data.append([neg_mat, [False, True]])
-    print("done")
-    print("Promoters: " + str(promoter_count))
-    print("Enhancers: " + str(enhancer_count))
-    print("Parsed data " + str(len(data)))
-    pickle.dump(fasta, open("fasta.p", "wb"))
-    pickle.dump(data, open("data.p", "wb"))
-    pickle.dump(ga, open("ga.p", "wb"))
-
-#exit()
-# with open("ex_start.fa", 'w+') as f:
-#    f.write(''.join(ex_start))
-
-# with open("ex_mid.fa", 'w+') as f:
-#    f.write(''.join(ex_mid))
-
+            data.append([seq_mat, [False, False, True]])
+print("done")
+print("Parsed data " + str(len(data)))
 
 shuffle(data)
 training_size = 0.9
@@ -397,65 +362,32 @@ x_test = []
 y_test = []
 
 half_size = 500
-tr_stat = [0, 0]
-ts_stat = [0, 0]
-my_file = Path("x_train.p")
-if my_file.is_file():
-    x_train = pickle.load(open("x_train.p", "rb"))
-    x_test = pickle.load(open("x_test.p", "rb"))
-    y_train = pickle.load(open("y_train.p", "rb"))
-    y_test = pickle.load(open("y_test.p", "rb"))
-    print("====================================================================")
-    print("Loaded existing training set")
-    print("Training set size: " + str(len(y_train)))
-    print("====================================================================")
-else:
-    for d in tr_data:
-        x_train.append(d[0])
-        y_train.append(d[1])
-        cl = np.where(d[1])[0][0]
-        tr_stat[cl] = tr_stat[cl] + 1
-    for d in ts_data:
-        x_test.append(d[0])
-        y_test.append(d[1])
-        cl = np.where(d[1])[0][0]
-        ts_stat[cl] = ts_stat[cl] + 1
 
-    print("Generated training set")
-    print("====================================================================")
-    print("Training set size: " + str(len(y_train)))
-    print("Training set positive: " + str(tr_stat[0]))
-    print("Training set negative: " + str(tr_stat[1]))
-    print("Test set positive: " + str(ts_stat[0]))
-    print("Test set negative: " + str(ts_stat[1]))
-    print("====================================================================")
-    gc.collect()
-    pickle.dump(x_train, open("x_train.p", "wb"))
-    pickle.dump(y_train, open("y_train.p", "wb"))
-    pickle.dump(x_test, open("x_test.p", "wb"))
-    pickle.dump(y_test, open("y_test.p", "wb"))
+for d in tr_data:
+    x_train.append(d[0])
+    y_train.append(d[1])
+    cl = np.where(d[1])[0][0]
+for d in ts_data:
+    x_test.append(d[0])
+    y_test.append(d[1])
+    cl = np.where(d[1])[0][0]
+
+print("Generated training set")
 
 x_train = np.asarray(x_train)
 y_train = np.asarray(y_train)
 x_test = np.asarray(x_test)
 y_test = np.asarray(y_test)
 
-num_classes = 2
+num_classes = 3
 # x_train = x_train.reshape(-1, seq_len, 4)
 # y_train = y_train.reshape(-1, nuc_classes)
 # x_test = x_test.reshape(-1, seq_len, 4)
 # y_test = y_test.reshape(-1, nuc_classes)
 seq_len = 1001
 
-del (data)
-del (ga)
-del (tr_data)
-del (ts_data)
-del (fasta)
-gc.collect()
-
 # np.random.seed(0)
-best_mcc = -1
+best_loss = 1000
 patience = 30
 wait = 0
 batch_size = 128
@@ -473,7 +405,7 @@ extra_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
 with tf.control_dependencies(extra_ops):
     train_step = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(loss)
 # run the training loop
-kp = 1.0
+kp = 0.5
 prev_to_delete = []
 print(out_dir)
 if not os.path.exists("./store/" + out_dir):
@@ -493,21 +425,13 @@ with tf.Session() as sess:
         np.random.set_state(rng_state)
         np.random.shuffle(y_train)
         np.random.set_state(rng_state)
-        start = time.time()
         x_train_shift = []
         gc.collect()
-        print("Adding shift")
         for i in range(len(y_train)):
-            if y_train[i][num_classes - 1] == 1 or scan_model:
-                rshift = randint(0, 200)
-                x_train_shift.append(x_train[i][rshift: rshift + seq_len])
-            else:
-                x_train_shift.append(x_train[i][100: 100 + seq_len])
+            x_train_shift.append(x_train[i][100: 100 + seq_len])
         x_test_shift = []
         for i in range(len(y_test)):
             x_test_shift.append(x_test[i][100: 100 + seq_len])
-        end = time.time()
-        print("Done, elapsed time " + str(end - start))
         total = int(math.ceil(float(len(x_train)) / batch_size))
         sp = 0
         for i in range(total):
@@ -521,22 +445,13 @@ with tf.Session() as sess:
             pred = brun(sess, x, out, x_test_shift, keep_prob, in_training_mode)
             tsloss = test_loss(pred, y_test)
 
-            ts = time.gmtime()
-            print(str(epoch) + " [" + time.strftime("%Y-%m-%d %H:%M:%S", ts) + "] ", end="")
-            print("Training sn, sp, mcc: ", end="")
-            tp, tn, fp, fn, sn, sp, mcc = test_mcc(pred_tr, y_train)
-            print(format(sn, '.2f') + " " + format(sp, '.2f') + " " + format(mcc, '.2f') + " ", end="")
-            print("Validation: ", end="")
-            tp, tn, fp, fn, sn, sp, mcc = test_mcc(pred, y_test)
-            print(format(sn, '.2f') + " " + format(sp, '.2f') + " " + format(mcc, '.2f') + " ")
-            saver.save(sess, "./store/" + out_dir + "/" + str(epoch) + ".ckpt")
-            if mcc > best_mcc and sp >= 0.98:  # and sp >= 0.99
-                best = epoch
-                print("------------------------------------best so far")
-                best_mcc = mcc
-
             print("Training set loss: " + str(trloss))
             print("Test set loss: " + str(tsloss))
+            saver.save(sess, "./store/" + out_dir + "/" + str(epoch) + ".ckpt")
+            if tsloss < best_loss:  # and sp >= 0.99
+                best = epoch
+                print("------------------------------------best so far")
+                best_loss = tsloss
 
         del (x_train_shift)
         del (x_test_shift)
