@@ -124,9 +124,9 @@ def main():
     half_size = 500
     batch_size = 128
 
-    dt1 = 0.5
+    dt1 = 0.7
     dt2 = args.T
-    minDist = 500
+    min_dist = 100
 
     test_mode = args.M == 1
     if test_mode:
@@ -141,35 +141,34 @@ def main():
     fasta = {}
     seq = ""
 
-    if Path("fasta.p").is_file():
-        fasta = pickle.load(open("fasta.p", "rb"))
-    else:
-        with open(args.I) as f:
-            for line in f:
-                if line.startswith(">"):
-                    if len(seq) != 0:
-                        seq = clean_seq(seq)
-                        fasta[chrn] = seq
-                        print(chrn + " - " + str(len(seq)))
-                    chrn = line.strip()[1:]
-                    try:
-                        if args.I.endswith('.fna'):
-                            chrn = re.search('chromosome (.*), GRCh38', chrn)
-                            chrn = chrn.group(1).strip()
-                        else:
-                            chrn = line.strip()[1:]
-                    except Exception as e:
-                        pass
-                    seq = ""
-                    continue
-                else:
-                    seq += line
-            if len(seq) != 0:
-                seq = clean_seq(seq)
-                fasta[chrn] = seq
-                print(chrn + " - " + str(len(seq)))
+    with open(args.I) as f:
+        for line in f:
+            if line.startswith(">"):
+                if len(seq) != 0:
+                    seq = clean_seq(seq)
+                    fasta[chrn] = seq
+                    print(chrn + " - " + str(len(seq)))
+                chrn = line.strip()[1:]
+                try:
+                    if args.I.endswith('.fna'):
+                        chrn = re.search('chromosome (.*), GRCh38', chrn)
+                        chrn = chrn.group(1).strip()
+                    else:
+                        chrn = line.strip()[1:]
+                except Exception as e:
+                    pass
+                seq = ""
+                continue
+            else:
+                seq += line
+        if len(seq) != 0:
+            seq = clean_seq(seq)
+            fasta[chrn] = seq
+            print(chrn + " - " + str(len(seq)))
 
-    good_chr = fasta.keys()
+    good_chr = ["chrX", "chrY"]
+    for i in range(1, 23):
+        good_chr.append("chr" + str(i))
     if args.C != "":
         good_chr = args.C.split(",")
     elif args.CE != "":
@@ -180,7 +179,7 @@ def main():
         if key not in good_chr:
             del fasta[key]
     putative = {}
-    scan_step = 100
+    scan_step = 50
     print("")
     print("---------------------------------------------------------")
     print("---------------------------------------------------------")
@@ -251,8 +250,8 @@ def main():
                 mr = np.argmax(np.max(predict, axis=1))
                 mc = np.argmax(np.max(predict, axis=0))
                 if predict[mr][mc] > dt2:
-                    if prev_pred != -1 and abs(inds[mr] - prev_pred) >= minDist:
-                        new_scores = pick(key, scores, dt2, minDist)
+                    if prev_pred != -1 and abs(inds[mr] - prev_pred) >= min_dist:
+                        new_scores = pick(key, scores, dt2, min_dist)
                         rows.extend(new_scores)
                         scores = []
                     scores.append([inds[mr], predict[mr][mc]])
@@ -263,7 +262,7 @@ def main():
 
             if len(scores) > 0:
                 scores.sort(key=lambda x: x[1], reverse=True)
-                new_scores = pick(key, scores, dt2, minDist)
+                new_scores = pick(key, scores, dt2, min_dist)
                 rows.extend(new_scores)
             print("Prediction complete for " + key + " chromosome. Predicted " + str(
                 len(rows)) + " regulatory regions." + " [" + time.strftime("%Y-%m-%d %H:%M:%S",
@@ -290,6 +289,7 @@ def main():
             else:
                 strand_info.append(".")
 
+    # row is [chr, position, score]
     for i, row in enumerate(rows):
         out.append(row[0] + "\t" + "DeepRAG" + "\t" + "promoter/enhancer" + "\t" + str(
             row[1] - 100 + 1) + "\t" + str(

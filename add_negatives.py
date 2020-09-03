@@ -63,7 +63,7 @@ with open('human.gff') as file:
             print(chrn + " " + str(len(ga[chrn])))
             print("Empty positions: " + str(np.count_nonzero(ga[chrn] == 0)))
 
-        if sum(ga[chrn][pos - 300: pos + 300 + 1]) == 0:
+        if sum(ga[chrn][pos - 100: pos + 100 + 1]) == 0:
             seq_mat = encode(chrn, pos, fasta, seq_len)
             if seq_mat is None:
                 encode_error = encode_error + 1
@@ -86,7 +86,7 @@ for d in new_negs:
 
 del fasta
 gc.collect()
-pickle.dump(x_train, open("x_train.p", "wb"))
-pickle.dump(y_train, open("y_train.p", "wb"))
-pickle.dump(ga, open("ga.p", "wb"))
+pickle.dump(x_train, open("x_train.p", "wb"), protocol=pickle.HIGHEST_PROTOCOL)
+pickle.dump(y_train, open("y_train.p", "wb"), protocol=pickle.HIGHEST_PROTOCOL)
+pickle.dump(ga, open("ga.p", "wb"), protocol=pickle.HIGHEST_PROTOCOL)
 print("Done")

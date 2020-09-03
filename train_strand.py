@@ -1,6 +1,6 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 import tensorflow as tf
 import numpy as np
 from math import sqrt
@@ -97,80 +97,39 @@ def fully_connected(input, name, output_size):
 def identity_building_block(input_tensor,
                             kernel_size,
                             filters,
-                            stage,
-                            block,
                             training=None):
-    filters1 = filters
-    filters2 = filters
-    bn_axis = 1
-    conv_name_base = 'res' + str(stage) + block + '_branch'
-    bn_name_base = 'bn' + str(stage) + block + '_branch'
+    x = layers.Conv1D(filters, kernel_size,
+                      padding='same', use_bias=True)(input_tensor)
+    x = layers.BatchNormalization()(x, training=training)
+    x = layers.LeakyReLU(alpha=0.2)(x)
 
-    x = layers.Conv1D(filters1, kernel_size,
-                      padding='same', use_bias=False,
-                      kernel_initializer='he_normal',
-                      kernel_regularizer=regularizers.l2(L2_WEIGHT_DECAY),
-                      name=conv_name_base + '2a')(input_tensor)
-    x = layers.BatchNormalization(
-        axis=bn_axis, momentum=BATCH_NORM_DECAY, epsilon=BATCH_NORM_EPSILON,
-        name=bn_name_base + '2a')(x, training=training)
-    x = layers.Activation('relu')(x)
-
-    x = layers.Conv1D(filters2, kernel_size,
-                      padding='same', use_bias=False,
-                      kernel_initializer='he_normal',
-                      kernel_regularizer=regularizers.l2(L2_WEIGHT_DECAY),
-                      name=conv_name_base + '2b')(x)
-    x = layers.BatchNormalization(
-        axis=bn_axis, momentum=BATCH_NORM_DECAY, epsilon=BATCH_NORM_EPSILON,
-        name=bn_name_base + '2b')(x, training=training)
+    x = layers.Conv1D(filters, kernel_size,
+                      padding='same', use_bias=True)(x)
+    x = layers.BatchNormalization()(x, training=training)
 
     x = layers.add([x, input_tensor])
-    x = layers.Activation('relu')(x)
+    x = layers.LeakyReLU(alpha=0.2)(x)
     return x
 
 
 def conv_building_block(input_tensor,
                         kernel_size,
                         filters,
-                        stage,
-                        block,
                         strides=1,
                         training=None):
-    filters1 = filters
-    filters2 = filters
-    bn_axis = 1
-    conv_name_base = 'res' + str(stage) + block + '_branch'
-    bn_name_base = 'bn' + str(stage) + block + '_branch'
+    x = layers.Conv1D(filters, kernel_size, strides=strides,
+                      padding='same', use_bias=True)(input_tensor)
+    x = layers.BatchNormalization()(x, training=training)
+    x = layers.LeakyReLU(alpha=0.2)(x)
 
-    x = layers.Conv1D(filters1, kernel_size, strides=strides,
-                      padding='same', use_bias=False,
-                      kernel_initializer='he_normal',
-                      kernel_regularizer=regularizers.l2(L2_WEIGHT_DECAY),
-                      name=conv_name_base + '2a')(input_tensor)
-    x = layers.BatchNormalization(
-        axis=bn_axis, momentum=BATCH_NORM_DECAY, epsilon=BATCH_NORM_EPSILON,
-        name=bn_name_base + '2a')(x, training=training)
-    x = layers.Activation('relu')(x)
+    x = layers.Conv1D(filters, kernel_size, padding='same', use_bias=True)(x)
+    x = layers.BatchNormalization()(x, training=training)
 
-    x = layers.Conv1D(filters2, kernel_size, padding='same', use_bias=False,
-                      kernel_initializer='he_normal',
-                      kernel_regularizer=regularizers.l2(L2_WEIGHT_DECAY),
-                      name=conv_name_base + '2b')(x)
-    x = layers.BatchNormalization(
-        axis=bn_axis, momentum=BATCH_NORM_DECAY, epsilon=BATCH_NORM_EPSILON,
-        name=bn_name_base + '2b')(x, training=training)
-
-    shortcut = layers.Conv1D(filters2, 1, strides=strides, use_bias=False,
-                             kernel_initializer='he_normal',
-                             kernel_regularizer=regularizers.l2(L2_WEIGHT_DECAY),
-                             name=conv_name_base + '1')(input_tensor)
-    shortcut = layers.BatchNormalization(
-        axis=bn_axis, momentum=BATCH_NORM_DECAY, epsilon=BATCH_NORM_EPSILON,
-        name=bn_name_base + '1')(shortcut, training=training)
+    shortcut = layers.Conv1D(filters, 1, strides=strides, use_bias=True)(input_tensor)
+    shortcut = layers.BatchNormalization()(shortcut, training=training)
 
     x = layers.add([x, shortcut])
-    x = layers.Activation('relu')(x)
+    x = layers.LeakyReLU(alpha=0.2)(x)
     return x
 
 
@@ -178,38 +137,37 @@ def resnet_block(input_tensor,
                  size,
                  kernel_size,
                  filters,
-                 stage,
                  conv_strides,
                  training):
-    x = conv_building_block(input_tensor, kernel_size, filters, stage=stage,
-                            strides=conv_strides, block='block_0',
+    x = conv_building_block(input_tensor, kernel_size, filters,
+                            strides=conv_strides,
                             training=training)
     for i in range(size - 1):
-        x = identity_building_block(x, kernel_size, filters, stage=stage, block='block_%d' % (i + 1), training=training)
+        x = identity_building_block(x, kernel_size, filters, training=training)
     return x
 
 
 def model(x, y, keep_ratio, in_training_mode):
-    filter_num = 64
-    num_blocks = 5
+    num_blocks = 3
+    filter_num = 256
+    lc1 = layers.Conv1D(filter_num, 3, padding='same', use_bias=True)(x)
+    lc1 = layers.LeakyReLU(alpha=0.2)(lc1)
+    resnet = resnet_block(lc1, size=num_blocks, kernel_size=3, filters=filter_num,
+                          conv_strides=1, training=in_training_mode)
 
-    lc1 = layers.Conv1D(filter_num, num_classes, padding='same', use_bias=True,
-                        kernel_initializer='he_normal',
-                        kernel_regularizer=regularizers.l2(L2_WEIGHT_DECAY))(x)
-    lc1 = layers.Activation('relu')(lc1)
-    resnet = resnet_block(lc1, size=num_blocks, kernel_size=3, filters=2 * filter_num,
-                          stage=2, conv_strides=1, training=in_training_mode)
+    resnet = resnet_block(resnet, size=num_blocks, kernel_size=3, filters=filter_num,
+                          conv_strides=1, training=in_training_mode)
 
-    resnet = resnet_block(resnet, size=num_blocks, kernel_size=3, filters=2 * filter_num,
-                          stage=3, conv_strides=2, training=in_training_mode)
+    resnet = resnet_block(resnet, size=num_blocks, kernel_size=3, filters=filter_num,
+                          conv_strides=1, training=in_training_mode)
 
     print(num_blocks)
     print(resnet)
-    dp = tf.nn.dropout(resnet, keep_ratio)
+    dp = tf.nn.dropout(resnet, keep_prob=keep_ratio)
     out, W = fully_connected(dp, "output_p", num_classes)
     loss = tf.nn.softmax_cross_entropy_with_logits_v2(labels=y, logits=out)
     out = tf.nn.softmax(out)
-    loss = tf.add(loss, 0.00001 * tf.nn.l2_loss(W))
+    # loss = tf.add(loss, 0.00001 * tf.nn.l2_loss(W))
     return out, loss
 
 
@@ -311,7 +269,7 @@ promoter_count = 0
 fasta = pickle.load(open("fasta.p", "rb"))
 
 print("Parsing CAGE bed")
-with open('cage.bed') as file:
+with open('data/hg19.cage_peak_phase1and2combined_coord.bed') as file:
     for line in file:
         vals = line.split("\t")
         chrn = vals[0]  # [3:len(vals[0])]
@@ -335,7 +293,7 @@ with open('cage.bed') as file:
             pass
         else:
             data.append([seq_mat, label])
-with open('enhancers.bed') as file:
+with open('data/human_permissive_enhancers_phase_1_and_2.bed') as file:
     for line in file:
         vals = line.split("\t")
         chrn = vals[0]  # [3:len(vals[0])]
@@ -387,7 +345,7 @@ num_classes = 3
 seq_len = 1001
 
 # np.random.seed(0)
-best_loss = 1000
+best_error = 10000000
 patience = 30
 wait = 0
 batch_size = 128
@@ -403,9 +361,9 @@ out = tf.identity(out, name="output_prom")
 # initialize optimizer
 extra_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
 with tf.control_dependencies(extra_ops):
-    train_step = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(loss)
+    train_step = tf.train.AdamOptimizer(learning_rate=0.00001).minimize(loss)
 # run the training loop
-kp = 0.5
+kp = 0.2
 prev_to_delete = []
 print(out_dir)
 if not os.path.exists("./store/" + out_dir):
@@ -444,14 +402,35 @@ with tf.Session() as sess:
             trloss = test_loss(pred_tr, y_train)
             pred = brun(sess, x, out, x_test_shift, keep_prob, in_training_mode)
             tsloss = test_loss(pred, y_test)
+            prom_correct = 0
+            prom_error = 0
+            enhancer_correct = 0
+            enhancer_error = 0
+            for p in range(len(pred)):
+                if y_test[p][2] == 0:
+                    if max(pred[p][0], pred[p][1]) > pred[p][2]:
+                        prom_correct = prom_correct + 1
+                    else:
+                        prom_error = prom_error + 1
+                else:
+                    if max(pred[p][0], pred[p][1]) < pred[p][2]:
+                        enhancer_correct = enhancer_correct + 1
+                    else:
+                        enhancer_error = enhancer_error + 1
 
             print("Training set loss: " + str(trloss))
             print("Test set loss: " + str(tsloss))
+            print(len(pred))
+            print(prom_correct)
+            print(prom_error)
+            print(enhancer_correct)
+            print(enhancer_error)
+            errors = enhancer_error + prom_error
             saver.save(sess, "./store/" + out_dir + "/" + str(epoch) + ".ckpt")
-            if tsloss < best_loss:  # and sp >= 0.99
+            if errors < best_error:
                 best = epoch
                 print("------------------------------------best so far")
-                best_loss = tsloss
+                best_error = errors
 
         del (x_train_shift)
         del (x_test_shift)
