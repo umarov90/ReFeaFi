@@ -2,7 +2,7 @@
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
 import argparse
 import logging
 import math
@@ -112,6 +112,7 @@ def pick(chr, scores, dt, minDist):
 def main():
     data_folder = "/home/user/data/DeepRAG/"
     os.chdir(data_folder)
+    models_folder = "models_prev/"
     args = get_options()
 
     if None in [args.I, args.O]:
@@ -124,7 +125,7 @@ def main():
     half_size = 500
     batch_size = 128
 
-    dt1 = 0.7
+    dt1 = 0.5
     dt2 = args.T
     min_dist = 100
 
@@ -133,8 +134,10 @@ def main():
         print("Testing all locations")
     else:
         print("Predicting for new negatives")
-
-    ga = pickle.load(open("ga.p", "rb"))
+    if test_mode:
+        ga = None
+    else:
+        ga = pickle.load(open("ga.p", "rb"))
     print("Scan threshold: " + str(dt1))
     print("Prediction threshold: " + str(dt2))
     print("Parsing fasta at " + str(args.I))
@@ -186,9 +189,9 @@ def main():
     print("")
     new_graph = tf.Graph()
     with tf.Session(graph=new_graph) as sess:
-        tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING], "models/model_scan")
+        tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING], models_folder + "model_scan")
         saver = tf.train.Saver()
-        saver.restore(sess, "models/model_scan/variables/variables")
+        saver.restore(sess, models_folder + "model_scan/variables/variables")
         input_x = tf.get_default_graph().get_tensor_by_name("input_prom:0")
         y = tf.get_default_graph().get_tensor_by_name("output_prom:0")
         kr = tf.get_default_graph().get_tensor_by_name("kr:0")
@@ -225,9 +228,9 @@ def main():
     rows = []
     new_graph = tf.Graph()
     with tf.Session(graph=new_graph) as sess:
-        tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING], "models/model_predict")
+        tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING], models_folder + "model_predict")
         saver = tf.train.Saver()
-        saver.restore(sess, "models/model_predict/variables/variables")
+        saver.restore(sess, models_folder + "model_predict/variables/variables")
         input_x = tf.get_default_graph().get_tensor_by_name("input_prom:0")
         y = tf.get_default_graph().get_tensor_by_name("output_prom:0")
         kr = tf.get_default_graph().get_tensor_by_name("kr:0")
@@ -271,9 +274,9 @@ def main():
     strand_info = []
     new_graph = tf.Graph()
     with tf.Session(graph=new_graph) as sess:
-        tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING], "models/model_strand")
+        tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING], models_folder + "model_strand")
         saver = tf.train.Saver()
-        saver.restore(sess, "models/model_strand/variables/variables")
+        saver.restore(sess, models_folder + "model_strand/variables/variables")
         input_x = tf.get_default_graph().get_tensor_by_name("input_prom:0")
         y = tf.get_default_graph().get_tensor_by_name("output_prom:0")
         kr = tf.get_default_graph().get_tensor_by_name("kr:0")

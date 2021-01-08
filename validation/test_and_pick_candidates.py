@@ -3,11 +3,10 @@ import numpy as np
 import sys
 import re
 import math
-import pickle
 import os
 import pyBigWig
 
-import prom_elem
+from validation import prom_elem
 
 
 def find_nearest(array, value):

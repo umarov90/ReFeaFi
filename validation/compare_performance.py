@@ -3,6 +3,8 @@ import os
 import numpy as np
 import math
 
+os.chdir("/home/user/data/DeepRAG/analysis")
+
 gl = {}
 gl["human"] = 249250621
 gl["mouse"] = 197195432
@@ -65,7 +67,7 @@ def get_ep3(organism):
     #print("EP3 predictions: " + str(len(preds["+"]) + len(preds["-"])))
     return preds
 
-def get_deepag(fpath):
+def get_deepag(fpath, type):
     min_score = 100
     max_score = -100
     preds = []
@@ -74,6 +76,8 @@ def get_deepag(fpath):
             vals = line.split("\t")
             score = float(vals[5])
             if vals[6] == ".":
+                if type == "promoter":
+                    continue
                 score = score * 1.5
             try:
                 score = math.log(score / (1 - score))
@@ -91,6 +95,7 @@ def get_deepag(fpath):
 
 def get_ef():
     preds = []
+    all_scores = []
     with open("../data/enhancerfinder_step1_hg19.bed") as file:
         for line in file:
             if line.startswith("#"):
@@ -103,23 +108,60 @@ def get_ef():
             for s in scores:
                 score = score + float(s)
             score = score / len(scores)
+            all_scores.append(score)
             chrp = int(int(vals[1]) + (int(vals[2]) - int(vals[1])) / 2) - 1
             #chrp = int(vals[1])
             preds.append([chrp, score])
+    all_scores = np.asarray(all_scores)
     return preds
 
 
-def get_results(organism, cage_file):
+def get_results(organism):
     print(organism)
-    deepag = get_deepag("../human_chr1.gff")
-    baseline = get_deepag("../human_simple_chr1.gff")
-    cage = get_cage()
+    deepag = get_deepag("../human_chr1_1iter.gff", type="promoter")
+    deepag_noshift = get_deepag("../human_chr1_no_shift.gff", type="promoter")
+    baseline = get_deepag("../human_baseline_chr1.gff", type="promoter")
+    cage = get_cage(type="promoter")
 
     # ep3 = get_ep3(organism)
     # prompredict = get_prompredict(organism)
 
 
-
+    # print("deeprag")
+    # dtv = []
+    # for dti in range(100):
+    #     dt = -2.2 + dti*0.123
+    #     res4 = compare(cage, deepag, dt)
+    #     fpr4 = 1000000 * (res4[0]/(2*gl[organism]))
+    #     dtv.append(str(res4[1]) + "," + str(fpr4))
+    #
+    # with open("dtv_deeprag_"+organism+".csv", 'w+') as f:
+    #     for l in dtv:
+    #         f.write(str(l) + "\n")
+    #
+    # print("deeprag_noshift")
+    # dtv = []
+    # for dti in range(100):
+    #     dt = -2.2 + dti * 0.123
+    #     res4 = compare(cage, deepag_noshift, dt)
+    #     fpr4 = 1000000 * (res4[0] / (2 * gl[organism]))
+    #     dtv.append(str(res4[1]) + "," + str(fpr4))
+    #
+    # with open("dtv_deeprag_noshift_" + organism + ".csv", 'w+') as f:
+    #     for l in dtv:
+    #         f.write(str(l) + "\n")
+    #
+    # print("baseline")
+    # dtv = []
+    # for dti in range(100):
+    #     dt = -2.2 + dti*0.123
+    #     res4 = compare(cage, baseline, dt)
+    #     fpr4 = 1000000 * (res4[0]/(2*gl[organism]))
+    #     dtv.append(str(res4[1]) + "," + str(fpr4))
+    #
+    # with open("dtv_baseline_"+organism+".csv", 'w+') as f:
+    #     for l in dtv:
+    #         f.write(str(l) + "\n")
 
     # print("ep3")
     # dtv = []
@@ -128,13 +170,11 @@ def get_results(organism, cage_file):
     #     res1 = compare(cage, ep3, dt)
     #     fpr1 = 1000000 * (res1[0]/(2*gl[organism]))
     #     dtv.append(str(res1[1]) + "," + str(fpr1))
-
+    #
     # with open("dtv_ep3_"+organism+".csv", 'w+') as f:
     #     for l in dtv:
     #         f.write(str(l) + "\n")
-    #print(str(fp) + " " + str(fpr) + " " + str(recall) + " " + str(precision) + " " + str(f1))
-    
-
+    #
     # print("prompredict")
     # dtv = []
     # for dti in range(100):
@@ -142,56 +182,56 @@ def get_results(organism, cage_file):
     #     res2 = compare(cage, prompredict, dt)
     #     fpr2 = 1000000 * (res2[0]/(2*gl[organism]))
     #     dtv.append(str(res2[1]) + "," + str(fpr2))
-    #     #print(str(fp) + " " + str(fpr) + " " + str(recall) + " " + str(precision) + " " + str(f1))
-
+    #
     # with open("dtv_prompredict_"+organism+".csv", 'w+') as f:
     #     for l in dtv:
     #         f.write(str(l) + "\n")
+    #
+    # res1 = compare(cage, ep3, -0.18)
+    # fpr1 = 1000000 * (res1[0]/(2*gl[organism]))
+    #
+    # res2 = compare(cage, prompredict, 2.8)
+    # fpr2 = 1000000 * (res2[0]/(2*gl[organism]))
+    #
+    # res3 = compare(cage, deepag, 0.935)
+    # fpr3 = 1000000 * (res3[0]/(2*gl[organism]))
+    #
+    # print(str(len(cage["chr1"])) + " " + str(fpr1) + " " + str(fpr2) + " " + str(fpr3) + " " + str(res1[4]) + " "+ str(res2[4]) + " "+ str(res3[4])+ " " + str(res1[1]) + " " + str(res2[1]) + " " + str(res3[1]) )
+    #
+    deepag = get_deepag("../human_chr1_no_shift.gff", type="enhancer")
+    cage = get_cage(type="enhancer")
+    ef = get_ef()
 
     print("deeprag")
     dtv = []
     for dti in range(100):
-        dt = -2.2 + dti*0.123
-        res4 = compare(cage, deepag, dt)
-        fpr4 = 1000000 * (res4[0]/(2*gl[organism]))
-        dtv.append(str(res4[1]) + "," + str(fpr4))
+        dt = -2.2 + dti * 0.123
+        res1 = compare(cage, deepag, dt)
+        fpr1 = 1000000 * (res1[0] / (2 * gl[organism]))
+        dtv.append(str(res1[1]) + "," + str(fpr1))
 
-    with open("dtv_deeprag_"+organism+".csv", 'w+') as f:
+    with open("dtv_deeprag_" + organism + "_enhancer.csv", 'w+') as f:
         for l in dtv:
             f.write(str(l) + "\n")
 
-    print("baseline")
+
+    print("EnhancerFinder")
     dtv = []
     for dti in range(100):
-        dt = -2.2 + dti*0.123
-        res4 = compare(cage, baseline, dt)
-        fpr4 = 1000000 * (res4[0]/(2*gl[organism]))
-        dtv.append(str(res4[1]) + "," + str(fpr4))
+        dt = -20 + dti * 0.4
+        res3 = compare(cage, ef, dt)
+        fpr3 = 1000000 * (res3[0] / (2 * gl[organism]))
+        dtv.append(str(res3[1]) + "," + str(fpr3))
 
-    with open("dtv_baseline_"+organism+".csv", 'w+') as f:
+    with open("dtv_ef_" + organism + "_enhancer.csv", 'w+') as f:
         for l in dtv:
             f.write(str(l) + "\n")
-    #
-    # res1 = compare(cage, ep3, -0.18)
-    # fpr1 = 1000000 * (res1[0]/(2*gl[organism]))
-    # #print(str(fp) + " " + str(fpr) + " " + str(recall) + " " + str(precision) + " " + str(f1))
-    #
-    #
-    # #print("prompredict")
-    # res2 = compare(cage, prompredict, 2.8)
-    # fpr2 = 1000000 * (res2[0]/(2*gl[organism]))
-    # #print(str(fp) + " " + str(fpr) + " " + str(recall) + " " + str(precision) + " " + str(f1))
-    #
-    # #print("promid")
-    # res3 = compare(cage, deepag, 0.935)
-    # fpr3 = 1000000 * (res3[0]/(2*gl[organism]))
-    # #print(str(res1[1]) + " " + str(res2[1]) + " " + str(res3[1]) + " " + str(res1[2]) + " " + str(res2[2]) + " " + str(res3[2]) + " " + str(res1[3]) + " " + str(res2[3]) + " " + str(res3[3]))
-    # print(str(len(cage["chr1"])) + " " + str(fpr1) + " " + str(fpr2) + " " + str(fpr3) + " " + str(res1[4]) + " "+ str(res2[4]) + " "+ str(res3[4])+ " " + str(res1[1]) + " " + str(res2[1]) + " " + str(res3[1]) )
-    #
 
-    #print(str(res1[1]) + " " + str(res2[1]) + " " + str(res3[1]) + " " + str(res1[2]) + " " + str(res2[2]) + " " + str(res3[2]) + " " + str(res1[3]) + " " + str(res2[3]) + " " + str(res3[3]))
-    #print(str(len(cage["chr1+"]) + len(cage["chr1-"]))  + " " + str(fpr1) + " " + str(fpr2) + " " + str(fpr3) + " " + str(res1[1]) + " " + str(res2[1]) + " " + str(res3[1]) )
-    #print(str(fp) + " " + str(fpr) + " " + str(recall) + " " + str(precision) + " " + str(f1))
+
+
+
+
+
 
 def find_nearest(array,value):
     idx = np.searchsorted(array, value, side="left")
@@ -239,28 +279,29 @@ def compare(cage, preds, dt, margin=500):
     return fp, recall, precision, f1, div
 
 
-def get_cage():
+def get_cage(type):
     reg_elements = {}
-    with open("../cage.bed") as file:
-        for line in file:
-            vals = line.split("\t")
-            chrn = vals[0]
-            val = 1
-            chrp = int(vals[7]) - 1
-            reg_elements.setdefault(chrn,[]).append([chrp, val])
-
-    with open("../enhancers.bed") as file:
-        for line in file:
-            vals = line.split("\t")
-            chrn = vals[0]
-            val = 1
-            chrp = int(vals[7]) - 1
-            reg_elements.setdefault(chrn,[]).append([chrp, val])
+    if type == "promoter":
+        with open("../data/hg19.cage_peak_phase1and2combined_coord.bed") as file:
+            for line in file:
+                vals = line.split("\t")
+                chrn = vals[0]
+                val = 1
+                chrp = int(vals[7]) - 1
+                reg_elements.setdefault(chrn,[]).append([chrp, val])
+    else:
+        with open("../data/human_permissive_enhancers_phase_1_and_2.bed") as file:
+            for line in file:
+                vals = line.split("\t")
+                chrn = vals[0]
+                val = 1
+                chrp = int(vals[7]) - 1
+                reg_elements.setdefault(chrn,[]).append([chrp, val])
     return reg_elements
 
 
 os.chdir("/home/user/data/DeepRAG/analysis")
-get_results("human", "../cage.bed")
+get_results("human")
 #get_results("mouse", "mm9.cage_peak_phase1and2combined_coord.bed")
 #get_results("chicken", "galGal5.cage_peak_coord.bed")
 #get_results("monkey", "rheMac8.cage_peak_coord.bed")

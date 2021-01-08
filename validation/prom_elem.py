@@ -128,5 +128,5 @@ def parse_genome(file):
             fasta[chrn] = seq
             print(chrn + " - " + str(len(seq)))
     print("Done")
-    pickle.dump(fasta, open("fasta.p", "wb"))
+    pickle.dump(fasta, open("../fasta.p", "wb"))
     return fasta

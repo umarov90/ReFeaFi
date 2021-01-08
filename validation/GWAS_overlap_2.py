@@ -204,10 +204,10 @@ with open("data/DPIcluster_hg19_20120116.permissive_set.GencodeV10_annotated.osc
         reg_elements.setdefault(chrn, []).append([chrp, 1])
 
 print("Done ")
-# vcf, count_vcf = parse_vcf("clinvar.vcf")
+# snps, count_snps = parse_vcf("clinvar.vcf")
 # snps, count_snps = parse_tsv("gwas_catalog_v1.0-associations_e100_r2020-07-06.tsv")
 snps, count_snps = parse_list("all_proxies.tsv")
-fasta = pickle.load(open("fasta.p", "rb"))
+fasta = pickle.load(open("../fasta.p", "rb"))
 if len(sys.argv) > 3:
     good_chr = sys.argv[3].split(",")
 else:

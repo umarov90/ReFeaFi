@@ -44,7 +44,7 @@ encode_error = 0
 seen_keys = []
 seq_len = 1201
 # All predictions in this file are considered to be negative
-with open('human.gff') as file:
+with open('human_negatives.gff') as file:
     for line in file:
         #try:
         vals = line.split("\t")

@@ -1,7 +1,7 @@
 import os
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 import tensorflow as tf
 import numpy as np
 from math import sqrt
@@ -460,6 +460,7 @@ open("./store/" + out_dir + "/check", 'a').close()
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     saver = tf.train.Saver(max_to_keep=None)
+    # saver.restore(sess, "./store/" + out_dir + "/" + str(14) + ".ckpt")
     for epoch in range(nb_epoch):
         gc.collect()
         my_file = Path("./store/" + out_dir + "/check")
@@ -480,7 +481,7 @@ with tf.Session() as sess:
             if not scan_model:
                 y_train_shift.append(y_train[i])
                 x_train_shift.append(x_train[i][shift: shift + seq_len])
-            if y_train[i][num_classes - 1] == 1 or scan_model:
+            if scan_model:  # y_train[i][num_classes - 1] == 1 or
                 rshift = randint(0, 2 * shift)
                 x_train_shift.append(x_train[i][rshift: rshift + seq_len])
                 y_train_shift.append(y_train[i])
