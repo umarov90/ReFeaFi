@@ -112,7 +112,7 @@ def pick(chr, scores, dt, minDist):
 def main():
     data_folder = "/home/user/data/DeepRAG/"
     os.chdir(data_folder)
-    models_folder = "models_prev/"
+    models_folder = "models/"
     args = get_options()
 
     if None in [args.I, args.O]:
@@ -127,7 +127,7 @@ def main():
 
     dt1 = 0.5
     dt2 = args.T
-    min_dist = 100
+    min_dist = 500
 
     test_mode = args.M == 1
     if test_mode:
@@ -152,14 +152,6 @@ def main():
                     fasta[chrn] = seq
                     print(chrn + " - " + str(len(seq)))
                 chrn = line.strip()[1:]
-                try:
-                    if args.I.endswith('.fna'):
-                        chrn = re.search('chromosome (.*), GRCh38', chrn)
-                        chrn = chrn.group(1).strip()
-                    else:
-                        chrn = line.strip()[1:]
-                except Exception as e:
-                    pass
                 seq = ""
                 continue
             else:
@@ -182,7 +174,7 @@ def main():
         if key not in good_chr:
             del fasta[key]
     putative = {}
-    scan_step = 50
+    scan_step = 100
     print("")
     print("---------------------------------------------------------")
     print("---------------------------------------------------------")

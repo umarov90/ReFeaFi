@@ -1,6 +1,6 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 import tensorflow as tf
 import numpy as np
 from math import sqrt
@@ -40,42 +40,6 @@ def rand_seq(rshift):
         r = np.random.randint(0, 4)
         z[i][r] = True
     return z
-
-
-def test_mcc(predict, y_test):
-    cl = 0
-    a = zeros(len(y_test))
-    for i in range(len(predict)):
-        if predict[i][cl] > 0.5:
-            a[i] = 1
-    tp = 0.0
-    tn = 0.0
-    fp = 0.0
-    fn = 0.0
-
-    for i in range(len(y_test)):
-        if (y_test[i][cl] == 1):
-            if (a[i] == 1):
-                tp += 1
-            else:
-                fn += 1
-        if (y_test[i][cl] == 0):
-            if (a[i] == 1):
-                fp += 1
-            else:
-                tn += 1
-    sn = 0.0
-    sp = 0.0
-    mcc = 0.0
-    try:
-        sn = tp / (tp + fn)
-        sp = tn / (tn + fp)
-        mcc = (tp * tn - fp * fn) / sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
-    except Exception:
-        pass
-    # (tp, tn, fp, fn, sn, sp, mcc)
-    return tp, tn, fp, fn, sn, sp, mcc
-
 
 def test_loss(predict, y_test):
     return np.square(np.subtract(np.asarray(predict), np.asarray(y_test))).mean()
@@ -149,17 +113,17 @@ def resnet_block(input_tensor,
 
 def model(x, y, keep_ratio, in_training_mode):
     num_blocks = 3
-    filter_num = 256
+    filter_num = 128
     lc1 = layers.Conv1D(filter_num, 3, padding='same', use_bias=True)(x)
     lc1 = layers.LeakyReLU(alpha=0.2)(lc1)
     resnet = resnet_block(lc1, size=num_blocks, kernel_size=3, filters=filter_num,
                           conv_strides=1, training=in_training_mode)
 
     resnet = resnet_block(resnet, size=num_blocks, kernel_size=3, filters=filter_num,
-                          conv_strides=1, training=in_training_mode)
+                          conv_strides=2, training=in_training_mode)
 
     resnet = resnet_block(resnet, size=num_blocks, kernel_size=3, filters=filter_num,
-                          conv_strides=1, training=in_training_mode)
+                          conv_strides=2, training=in_training_mode)
 
     print(num_blocks)
     print(resnet)
@@ -259,7 +223,7 @@ for i in range(1, 23):
     good_chr.append("chr" + str(i))
 
 max_features = 4
-seq_len = 1201
+seq_len = 1001
 out_dir = sys.argv[1]
 data = []
 elens = []
@@ -338,13 +302,6 @@ x_test = np.asarray(x_test)
 y_test = np.asarray(y_test)
 
 num_classes = 3
-# x_train = x_train.reshape(-1, seq_len, 4)
-# y_train = y_train.reshape(-1, nuc_classes)
-# x_test = x_test.reshape(-1, seq_len, 4)
-# y_test = y_test.reshape(-1, nuc_classes)
-seq_len = 1001
-
-# np.random.seed(0)
 best_error = 10000000
 patience = 30
 wait = 0
@@ -363,7 +320,7 @@ extra_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
 with tf.control_dependencies(extra_ops):
     train_step = tf.train.AdamOptimizer(learning_rate=0.00001).minimize(loss)
 # run the training loop
-kp = 0.2
+kp = 0.5
 prev_to_delete = []
 print(out_dir)
 if not os.path.exists("./store/" + out_dir):
@@ -383,24 +340,17 @@ with tf.Session() as sess:
         np.random.set_state(rng_state)
         np.random.shuffle(y_train)
         np.random.set_state(rng_state)
-        x_train_shift = []
-        gc.collect()
-        for i in range(len(y_train)):
-            x_train_shift.append(x_train[i][100: 100 + seq_len])
-        x_test_shift = []
-        for i in range(len(y_test)):
-            x_test_shift.append(x_test[i][100: 100 + seq_len])
         total = int(math.ceil(float(len(x_train)) / batch_size))
         sp = 0
         for i in range(total):
-            feed = {x: x_train_shift[i * batch_size:(i + 1) * batch_size],
+            feed = {x: x_train[i * batch_size:(i + 1) * batch_size],
                     y: y_train[i * batch_size:(i + 1) * batch_size], keep_prob: kp, in_training_mode: True}
             train_step.run(feed_dict=feed)
         pred_tr = []
         if epoch % 1 == 0:
-            pred_tr = brun(sess, x, out, x_train_shift, keep_prob, in_training_mode)
+            pred_tr = brun(sess, x, out, x_train, keep_prob, in_training_mode)
             trloss = test_loss(pred_tr, y_train)
-            pred = brun(sess, x, out, x_test_shift, keep_prob, in_training_mode)
+            pred = brun(sess, x, out, x_test, keep_prob, in_training_mode)
             tsloss = test_loss(pred, y_test)
             prom_correct = 0
             prom_error = 0
@@ -432,8 +382,6 @@ with tf.Session() as sess:
                 print("------------------------------------best so far")
                 best_error = errors
 
-        del (x_train_shift)
-        del (x_test_shift)
         gc.collect()
 
     # exit()

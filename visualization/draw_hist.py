@@ -6,16 +6,20 @@ import seaborn as sns
 import os
 import string
 
-fig, axs = plt.subplots(1,1,figsize=(3,3))
-#axs = axs.flat
+os.chdir("/home/user/data/DeepRAG/")
+matplotlib.rcParams.update({'font.size': 14})
 
-data = []
-data.append(np.genfromtxt("a.csv", delimiter=',') / 10)
-#data.append(np.genfromtxt("mu.csv", delimiter=','))
-#data.append(np.genfromtxt("mc.csv", delimiter=','))
-#data.append(np.genfromtxt("md.csv", delimiter=','))
-g = sns.lineplot(data=data[0], ax=axs, legend=False, dashes=False)   
+group = "Enhancers" # Promoters
+fig, axs = plt.subplots(figsize=(6,4))
+data = np.genfromtxt("figures_data/importance_"+group+".csv", delimiter=',')
+data = data[0:1000]
+
+g = sns.lineplot(data=data, ax=axs)
 g.set_xticks([0, 500, 1000]) # <--- set the ticks first
 g.set_xticklabels(["-500", "+1", "+500"])
-
-plt.savefig("imp.svg", transparent=True)
+axs.axhline(0, ls='-', c="lightgray", lw=2)
+axs.set(xlabel='Position', ylabel='Score impact')
+g.set(ylim=(0, 0.2))
+plt.title("Average effect on score (" + group + ")")
+fig.tight_layout()
+plt.savefig("figures/importance_"+group+".png")

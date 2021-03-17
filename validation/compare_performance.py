@@ -1,5 +1,5 @@
 import os
-
+import common as cm
 import numpy as np
 import math
 
@@ -17,7 +17,7 @@ def get_prompredict(organism):
     preds = []
     dt = 2.0
     mvs = []
-    with open("preds/" + organism + "_chr1_PPde.txt") as file:
+    with open("analysis/preds/" + organism + "_chr1_PPde.txt") as file:
         for line in file:
             if(line.startswith("#")):
                 continue
@@ -27,7 +27,7 @@ def get_prompredict(organism):
                 preds.append([p, float(vals[10])])
             mvs.append(float(vals[10]))
 
-    with open("preds/" + organism + "_chr1_rev_PPde.txt") as file:
+    with open("analysis/preds/" + organism + "_chr1_rev_PPde.txt") as file:
         for line in file:
             if(line.startswith("#")):
                 continue
@@ -46,14 +46,14 @@ def get_prompredict(organism):
 def get_ep3(organism):
     preds = []
     mvs = []
-    with open("preds/" + organism + "_chr1.fa.gff3") as file:
+    with open("analysis/preds/" + organism + "_chr1.fa.gff3") as file:
         for line in file:
             vals = line.split("\t")
             p = int(vals[3]) + 200 
             preds.append([p, float(vals[5])])
             mvs.append(float(vals[5]))
 
-    with open("preds/" + organism + "_chr1_rev.fa.gff3") as file:
+    with open("analysis/preds/" + organism + "_chr1_rev.fa.gff3") as file:
         for line in file:
             vals = line.split("\t")
             p = int(vals[3]) + 200   
@@ -75,12 +75,11 @@ def get_deepag(fpath, type):
         for line in file:
             vals = line.split("\t")
             score = float(vals[5])
-            if vals[6] == ".":
-                if type == "promoter":
-                    continue
-                score = score * 1.5
+            # if vals[6] == ".":
+            #     if type == "promoter":
+            #         continue
             try:
-                score = math.log(score / (1 - score))
+                score = math.log(1 + score / (1.00001 - score))
                 if score < min_score:
                     min_score = score
                 if score > max_score:
@@ -90,7 +89,7 @@ def get_deepag(fpath, type):
                     preds.append([pos, score])
             except:
                 pass
-    preds.sort()
+    # preds.sort()
     return preds
 
 def get_ef():
@@ -116,62 +115,85 @@ def get_ef():
     return preds
 
 
-def get_results(organism):
-    print(organism)
-    deepag = get_deepag("../human_chr1_1iter.gff", type="promoter")
-    deepag_noshift = get_deepag("../human_chr1_no_shift.gff", type="promoter")
-    baseline = get_deepag("../human_baseline_chr1.gff", type="promoter")
-    cage = get_cage(type="promoter")
+def get_promid(path):
+    proms = []
+    with open(path) as file:
+        for line in file:
+            vals = line.split("\t")
+            chrp = int(vals[7]) - 1
+            score = float(vals[4])
+            score = math.log(1 + score / (1.00001 - score))
+            proms.append([chrp, score])
+    return proms
 
+
+def get_results(organism, path):
+    deepag = get_deepag(organism + "_chr1.gff", type="promoter")
+    cage = get_cage(path, type="promoter")
+    print(organism + " : " + str(len(cage["chr1"])))
+    #
+    # promid = get_promid("data/promid_promoters.bed")
     # ep3 = get_ep3(organism)
     # prompredict = get_prompredict(organism)
-
-
-    # print("deeprag")
+    #
+    # print("promid")
     # dtv = []
-    # for dti in range(100):
-    #     dt = -2.2 + dti*0.123
-    #     res4 = compare(cage, deepag, dt)
-    #     fpr4 = 1000000 * (res4[0]/(2*gl[organism]))
-    #     dtv.append(str(res4[1]) + "," + str(fpr4))
+    # for dti in range(200):
+    #     dt = 2 + dti*0.06
+    #     res = compare(cage, promid, dt)
+    #     fpr = 1000000 * (res[0]/(2*gl[organism]))
+    #     dtv.append(str(res[1]) + "," + str(fpr))
+    #     # if round(res[1], 2) == 0.50:
+    #     #      print(str(res[1]) + "\t" + str(res[2]) + "\t" + str(res[3]) + "\t" + str(res[4]) + "\t" + str(fpr))
+    #     #      break
     #
-    # with open("dtv_deeprag_"+organism+".csv", 'w+') as f:
-    #     for l in dtv:
-    #         f.write(str(l) + "\n")
-    #
-    # print("deeprag_noshift")
-    # dtv = []
-    # for dti in range(100):
-    #     dt = -2.2 + dti * 0.123
-    #     res4 = compare(cage, deepag_noshift, dt)
-    #     fpr4 = 1000000 * (res4[0] / (2 * gl[organism]))
-    #     dtv.append(str(res4[1]) + "," + str(fpr4))
-    #
-    # with open("dtv_deeprag_noshift_" + organism + ".csv", 'w+') as f:
-    #     for l in dtv:
-    #         f.write(str(l) + "\n")
-    #
-    # print("baseline")
-    # dtv = []
-    # for dti in range(100):
-    #     dt = -2.2 + dti*0.123
-    #     res4 = compare(cage, baseline, dt)
-    #     fpr4 = 1000000 * (res4[0]/(2*gl[organism]))
-    #     dtv.append(str(res4[1]) + "," + str(fpr4))
-    #
-    # with open("dtv_baseline_"+organism+".csv", 'w+') as f:
+    # with open("figures_data/dtv_promid_"+organism+".csv", 'w+') as f:
     #     for l in dtv:
     #         f.write(str(l) + "\n")
 
+    print("deeprag")
+    dtv = []
+    for dti in range(100):
+        dt = -2.2 + dti*0.123
+        res = compare(cage, deepag, dt)
+        fpr = 1000000 * (res[0]/(2*gl[organism]))
+        dtv.append(str(res[1]) + "," + str(fpr))
+        # if round(res[1], 2) == 0.50:
+        #      print(str(res[1]) + "\t" + str(res[2]) + "\t" + str(res[3]) + "\t" + str(res[4]) + "\t" + str(fpr))
+        #      break
+
+    with open("figures_data/dtv_deeprag_"+organism+".csv", 'w+') as f:
+        for l in dtv:
+            f.write(str(l) + "\n")
+    exit(0)
     # print("ep3")
     # dtv = []
     # for dti in range(100):
     #     dt = -0.25 + dti * 0.011
-    #     res1 = compare(cage, ep3, dt)
-    #     fpr1 = 1000000 * (res1[0]/(2*gl[organism]))
-    #     dtv.append(str(res1[1]) + "," + str(fpr1))
+    #     res = compare(cage, ep3, dt)
+    #     fpr = 1000000 * (res[0]/(2*gl[organism]))
+    #     dtv.append(str(res[1]) + "," + str(fpr))
+    #     # if round(res[1], 2) == 0.50:
+    #     #      print(str(res[1]) + "\t" + str(res[2]) + "\t" + str(res[3]) + "\t" + str(res[4]) + "\t" + str(fpr))
+    #     #      break
     #
-    # with open("dtv_ep3_"+organism+".csv", 'w+') as f:
+    # with open("figures_data/dtv_ep3_"+organism+".csv", 'w+') as f:
+    #     for l in dtv:
+    #         f.write(str(l) + "\n")
+    #
+    # basenji = get_basenji()
+    # print("basenji")
+    # dtv = []
+    # for dti in range(160):
+    #     dt = 0.6 + dti * 0.0025
+    #     res = compare(cage, basenji, dt)
+    #     fpr = 1000000 * (res[0] / (2 * gl[organism]))
+    #     dtv.append(str(res[1]) + "," + str(fpr))
+    #     # if round(res[1], 2) == 0.50:
+    #     #      print(str(res[1]) + "\t" + str(res[2]) + "\t" + str(res[3]) + "\t" + str(res[4]) + "\t" + str(fpr))
+    #     #      break
+    #
+    # with open("figures_data/dtv_basenji7_" + organism + ".csv", 'w+') as f:
     #     for l in dtv:
     #         f.write(str(l) + "\n")
     #
@@ -179,11 +201,14 @@ def get_results(organism):
     # dtv = []
     # for dti in range(100):
     #     dt = 2.8 + dti * 0.032
-    #     res2 = compare(cage, prompredict, dt)
-    #     fpr2 = 1000000 * (res2[0]/(2*gl[organism]))
-    #     dtv.append(str(res2[1]) + "," + str(fpr2))
+    #     res = compare(cage, prompredict, dt)
+    #     fpr = 1000000 * (res[0]/(2*gl[organism]))
+    #     dtv.append(str(res[1]) + "," + str(fpr))
+    #     # if round(res[1], 2) == 0.50:
+    #     #      print(str(res[1]) + "\t" + str(res[2]) + "\t" + str(res[3]) + "\t" + str(res[4]) + "\t" + str(fpr))
+    #     #      break
     #
-    # with open("dtv_prompredict_"+organism+".csv", 'w+') as f:
+    # with open("figures_data/dtv_prompredict_"+organism+".csv", 'w+') as f:
     #     for l in dtv:
     #         f.write(str(l) + "\n")
     #
@@ -198,39 +223,6 @@ def get_results(organism):
     #
     # print(str(len(cage["chr1"])) + " " + str(fpr1) + " " + str(fpr2) + " " + str(fpr3) + " " + str(res1[4]) + " "+ str(res2[4]) + " "+ str(res3[4])+ " " + str(res1[1]) + " " + str(res2[1]) + " " + str(res3[1]) )
     #
-    deepag = get_deepag("../human_chr1_no_shift.gff", type="enhancer")
-    cage = get_cage(type="enhancer")
-    ef = get_ef()
-
-    print("deeprag")
-    dtv = []
-    for dti in range(100):
-        dt = -2.2 + dti * 0.123
-        res1 = compare(cage, deepag, dt)
-        fpr1 = 1000000 * (res1[0] / (2 * gl[organism]))
-        dtv.append(str(res1[1]) + "," + str(fpr1))
-
-    with open("dtv_deeprag_" + organism + "_enhancer.csv", 'w+') as f:
-        for l in dtv:
-            f.write(str(l) + "\n")
-
-
-    print("EnhancerFinder")
-    dtv = []
-    for dti in range(100):
-        dt = -20 + dti * 0.4
-        res3 = compare(cage, ef, dt)
-        fpr3 = 1000000 * (res3[0] / (2 * gl[organism]))
-        dtv.append(str(res3[1]) + "," + str(fpr3))
-
-    with open("dtv_ef_" + organism + "_enhancer.csv", 'w+') as f:
-        for l in dtv:
-            f.write(str(l) + "\n")
-
-
-
-
-
 
 
 def find_nearest(array,value):
@@ -248,6 +240,7 @@ def compare(cage, preds, dt, margin=500):
     cg = [i[0] for i in cage[key]]
     cg = np.asarray(cg)
     pr = [i[0] for i in preds if i[1] >= dt]
+    pr.sort()
     pr = np.asarray(pr)
     if(len(pr) > 0):
         for gt in cg:
@@ -279,31 +272,51 @@ def compare(cage, preds, dt, margin=500):
     return fp, recall, precision, f1, div
 
 
-def get_cage(type):
-    reg_elements = {}
-    if type == "promoter":
-        with open("../data/hg19.cage_peak_phase1and2combined_coord.bed") as file:
-            for line in file:
-                vals = line.split("\t")
-                chrn = vals[0]
-                val = 1
-                chrp = int(vals[7]) - 1
-                reg_elements.setdefault(chrn,[]).append([chrp, val])
-    else:
-        with open("../data/human_permissive_enhancers_phase_1_and_2.bed") as file:
-            for line in file:
-                vals = line.split("\t")
-                chrn = vals[0]
-                val = 1
-                chrp = int(vals[7]) - 1
-                reg_elements.setdefault(chrn,[]).append([chrp, val])
+def get_basenji():
+    reg_elements = []
+    positions = []
+    bin = 192
+    for i in range(1, 249250621 - bin, bin):
+        positions.append(i + bin / 2)
+    k = 0
+    with open("data/basenji_scores.txt") as file:
+        for line in file:
+            val = float(line)
+            reg_elements.append([positions[k], val])
+            k = k + 1
     return reg_elements
 
 
-os.chdir("/home/user/data/DeepRAG/analysis")
-get_results("human")
-#get_results("mouse", "mm9.cage_peak_phase1and2combined_coord.bed")
-#get_results("chicken", "galGal5.cage_peak_coord.bed")
-#get_results("monkey", "rheMac8.cage_peak_coord.bed")
-#get_results("rat", "rn6.cage_peak_coord.bed")
-#get_results("dog", "canFam3.cage_peak_coord.bed")
+def get_cage(path, type):
+    reg_elements = {}
+    # if type == "promoter":
+    with open(path) as file:
+        for line in file:
+            vals = line.split("\t")
+            chrn = vals[0]
+            chrp = int(vals[7]) - 1
+            val = 1
+            reg_elements.setdefault(chrn,[]).append([chrp, val])
+    # else:
+    # with open("data/human_permissive_enhancers_phase_1_and_2.bed") as file:
+    #     for line in file:
+    #         vals = line.split("\t")
+    #         chrn = vals[0]
+    #         val = 1
+    #         chrp = int(vals[7]) - 1
+    #         reg_elements.setdefault(chrn,[]).append([chrp, val])
+    return reg_elements
+
+
+os.chdir("/home/user/data/DeepRAG/")
+# for filename in os.listdir("data/genomes/"):
+#     if filename.endswith(".fa"):
+#         print(filename)
+#         print(len(cm.parse_genome("data/genomes/" + filename, chr1=True)["chr1"]))
+
+# get_results("human", "data/hg19.cage_peak_phase1and2combined_coord.bed")
+get_results("mouse", "data/cage/mm9.cage_peak_phase1and2combined_coord.bed")
+# get_results("chicken", "data/cage/galGal5.cage_peak_coord.bed")
+# get_results("monkey", "data/cage/rheMac8.cage_peak_coord.bed")
+# get_results("rat", "data/cage/rn6.cage_peak_coord.bed")
+# get_results("dog", "data/cage/canFam3.cage_peak_coord.bed")

@@ -2,6 +2,9 @@ import gc
 import pickle
 import os
 import numpy as np
+from random import shuffle
+from sklearn.externals import joblib
+
 
 enc_mat = np.append(np.eye(4),
                     [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [1, 0, 0, 0],
@@ -42,7 +45,8 @@ preds = {}
 pred_count = 0
 encode_error = 0
 seen_keys = []
-seq_len = 1201
+shift = 50
+seq_len = 1001 + 2 * shift
 # All predictions in this file are considered to be negative
 with open('human_negatives.gff') as file:
     for line in file:
@@ -61,9 +65,9 @@ with open('human_negatives.gff') as file:
         if chrn not in seen_keys:
             seen_keys.append(chrn)
             print(chrn + " " + str(len(ga[chrn])))
-            print("Empty positions: " + str(np.count_nonzero(ga[chrn] == 0)))
-
-        if sum(ga[chrn][pos - 100: pos + 100 + 1]) == 0:
+            # print("Empty positions: " + str(np.count_nonzero(ga[chrn] == 0)))
+        score = float(vals[5])
+        if sum(ga[chrn][pos - 500: pos + 500]) == 0:
             seq_mat = encode(chrn, pos, fasta, seq_len)
             if seq_mat is None:
                 encode_error = encode_error + 1
@@ -76,17 +80,32 @@ with open('human_negatives.gff') as file:
 print("Predictions: " + str(pred_count))
 print("Encode error: " + str(encode_error))
 print("Found " + str(len(new_negs)) + " negatives")
-#exit()
-x_train = pickle.load(open("x_train.p", "rb"))
+# exit()
+# x_train = pickle.load(open("x_train.p", "rb"))
+x_train = joblib.load("x_train.p")
 y_train = pickle.load(open("y_train.p", "rb"))
+x_test = pickle.load(open("x_test.p", "rb"))
+y_test = pickle.load(open("y_test.p", "rb"))
+shuffle(new_negs)
+# new_negs = new_negs[:len(x_train)]
+training_size = 0.9
+tr_data = new_negs[0:int(training_size * len(new_negs))]
+ts_data = new_negs[int(training_size * len(new_negs)): len(new_negs)]
 
-for d in new_negs:
+for d in tr_data:
     x_train.append(d[0])
     y_train.append(d[1])
 
+for d in ts_data:
+    x_test.append(d[0])
+    y_test.append(d[1])
+
 del fasta
 gc.collect()
-pickle.dump(x_train, open("x_train.p", "wb"), protocol=pickle.HIGHEST_PROTOCOL)
+joblib.dump(x_train, "x_train.p")
+# pickle.dump(x_train, open("x_train.p", "wb"), protocol=pickle.HIGHEST_PROTOCOL)
 pickle.dump(y_train, open("y_train.p", "wb"), protocol=pickle.HIGHEST_PROTOCOL)
+pickle.dump(x_test, open("x_test.p", "wb"), protocol=pickle.HIGHEST_PROTOCOL)
+pickle.dump(y_test, open("y_test.p", "wb"), protocol=pickle.HIGHEST_PROTOCOL)
 pickle.dump(ga, open("ga.p", "wb"), protocol=pickle.HIGHEST_PROTOCOL)
 print("Done")

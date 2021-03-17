@@ -1,7 +1,7 @@
 import os
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import tensorflow as tf
 import numpy as np
 from math import sqrt
@@ -16,6 +16,11 @@ import random
 from random import randint, shuffle
 from tensorflow.python.keras import layers
 import gc
+from sklearn.externals import joblib
+from sklearn.metrics import roc_curve, auc
+import common as cm
+from scipy import stats
+from Bio.Seq import Seq
 
 
 def find_nearest(array, value):
@@ -34,52 +39,12 @@ def rand_seq(rshift):
     return z
 
 
-def test_mcc(predict, y_test, scan_model):
-    sp = 0.0
-    dt = 0.5
-    sp_val = 0.99
-    if scan_model:
-        sp_val = 0.9
-    while sp < sp_val:
-        cl = 0
-        a = zeros(len(y_test))
-        for i in range(len(predict)):
-            score = predict[i][cl]
-            if score > 0.0001:
-                if score < 0.99999:
-                    score = math.log(score / (1 - score))
-                    if score > dt:
-                        a[i] = 1
-                else:
-                    a[i] = 1
-
-        tp = 0.0
-        tn = 0.0
-        fp = 0.0
-        fn = 0.0
-
-        for i in range(len(y_test)):
-            if (y_test[i][cl] == 1):
-                if (a[i] == 1):
-                    tp += 1
-                else:
-                    fn += 1
-            if (y_test[i][cl] == 0):
-                if (a[i] == 1):
-                    fp += 1
-                else:
-                    tn += 1
-        sn = 0.0
-        sp = 0.0
-        mcc = 0.0
-        try:
-            sn = tp / (tp + fn)
-            sp = tn / (tn + fp)
-            mcc = (tp * tn - fp * fn) / sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
-        except Exception:
-            pass
-        dt = dt + 0.1
-    return tp, tn, fp, fn, sn, sp, mcc
+def calc_auc(predict, gt):
+    total_scores = [p[0] for p in predict]
+    ground_truth = [p[0] for p in gt]
+    fpr, tpr, thresholds = roc_curve(ground_truth, total_scores)
+    roc_auc = auc(fpr, tpr)
+    return roc_auc
 
 
 def test_loss(predict, y_test):
@@ -104,12 +69,12 @@ def identity_building_block(input_tensor,
                             filters,
                             training=None):
     x = layers.Conv1D(filters, kernel_size,
-                      padding='same', use_bias=True)(input_tensor)
+                      padding='same', use_bias=False)(input_tensor)
     x = layers.BatchNormalization()(x, training=training)
     x = layers.LeakyReLU(alpha=0.2)(x)
 
     x = layers.Conv1D(filters, kernel_size,
-                      padding='same', use_bias=True)(x)
+                      padding='same', use_bias=False)(x)
     x = layers.BatchNormalization()(x, training=training)
 
     x = layers.add([x, input_tensor])
@@ -127,10 +92,10 @@ def conv_building_block(input_tensor,
     x = layers.BatchNormalization()(x, training=training)
     x = layers.LeakyReLU(alpha=0.2)(x)
 
-    x = layers.Conv1D(filters, kernel_size, padding='same', use_bias=True)(x)
+    x = layers.Conv1D(filters, kernel_size, padding='same', use_bias=False)(x)
     x = layers.BatchNormalization()(x, training=training)
 
-    shortcut = layers.Conv1D(filters, 1, strides=strides, use_bias=True)(input_tensor)
+    shortcut = layers.Conv1D(filters, 1, strides=strides, use_bias=False)(input_tensor)
     shortcut = layers.BatchNormalization()(shortcut, training=training)
 
     x = layers.add([x, shortcut])
@@ -154,17 +119,16 @@ def resnet_block(input_tensor,
 
 def model(x, y, keep_ratio, in_training_mode):
     num_blocks = 3
-    filter_num = 256
-    lc1 = layers.Conv1D(filter_num, 3, padding='same', use_bias=True)(x)
+    lc1 = layers.Conv1D(128, 3, padding='same', use_bias=True)(x)
     lc1 = layers.LeakyReLU(alpha=0.2)(lc1)
-    resnet = resnet_block(lc1, size=num_blocks, kernel_size=3, filters=filter_num,
+    resnet = resnet_block(lc1, size=num_blocks, kernel_size=3, filters=128,
                           conv_strides=1, training=in_training_mode)
 
-    resnet = resnet_block(resnet, size=num_blocks, kernel_size=3, filters=filter_num,
-                          conv_strides=1, training=in_training_mode)
+    resnet = resnet_block(resnet, size=num_blocks, kernel_size=3, filters=128,
+                          conv_strides=2, training=in_training_mode)
 
-    resnet = resnet_block(resnet, size=num_blocks, kernel_size=3, filters=filter_num,
-                          conv_strides=1, training=in_training_mode)
+    resnet = resnet_block(resnet, size=num_blocks, kernel_size=3, filters=128,
+                          conv_strides=2, training=in_training_mode)
 
     print(num_blocks)
     print(resnet)
@@ -241,6 +205,21 @@ def prep(ar):
     return flat
 
 
+def toseq(a):
+    seq = ""
+    for n in a:
+        if n[0] == 1:
+            seq = seq + "A"
+        elif n[1] == 1:
+            seq = seq + "C"
+        elif n[2] == 1:
+            seq = seq + "G"
+        elif n[3] == 1:
+            seq = seq + "T"
+        else:
+            seq = seq + "N"
+    return seq
+
 data_folder = "/home/user/data/DeepRAG/"
 os.chdir(data_folder)
 
@@ -267,7 +246,8 @@ tr_stat = [0, 0]
 ts_stat = [0, 0]
 my_file = Path("x_train.p")
 if my_file.is_file():
-    x_train = pickle.load(open("x_train.p", "rb"))
+    # x_train = pickle.load(open("x_train.p", "rb"))
+    x_train = joblib.load("x_train.p")
     x_test = pickle.load(open("x_test.p", "rb"))
     y_train = pickle.load(open("y_train.p", "rb"))
     y_test = pickle.load(open("y_test.p", "rb"))
@@ -420,27 +400,26 @@ else:
     pickle.dump(x_test, open("x_test.p", "wb"), protocol=pickle.HIGHEST_PROTOCOL)
     pickle.dump(y_test, open("y_test.p", "wb"), protocol=pickle.HIGHEST_PROTOCOL)
 
-# y_train_new = []
-# for i in range(len(y_train)):
-#     if y_train[i][1] == 1 or random.random() < 0.9:
-#         y_train_new.append(y_train[i])
-#     else:
-#         y_train_new.append([False, True])
-#
-# y_train = y_train_new
 
 x_train = np.asarray(x_train)
 y_train = np.asarray(y_train)
 x_test = np.asarray(x_test)
 y_test = np.asarray(y_test)
 
+fasta = pickle.load(open("fasta.p", "rb"))
+background = {}
+background["RPLP0_CE_bg"] = ["chr12", "-", 120638861 - 1, 120639013 - 1]
+background["ACTB_CE_bg"] = ["chr7",   "-", 5570183 - 1, 5570335 - 1]
+background["C14orf166_CE_bg"] = ["chr14", "+", 52456090 - 1,  52456242 - 1]
+
 num_classes = 2
 seq_len = 1001
+half_size = 500
 
-best_mcc = -1
+best_auc = -1
 patience = 30
 wait = 0
-batch_size = 128
+batch_size = 300
 nb_epoch = 300
 x = tf.placeholder(tf.float32, shape=[None, seq_len, max_features], name="input_prom")
 y = tf.placeholder(tf.float32, shape=[None, num_classes])
@@ -450,9 +429,8 @@ out, loss = model(x, y, keep_prob, in_training_mode)
 out = tf.identity(out, name="output_prom")
 extra_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
 with tf.control_dependencies(extra_ops):
-    train_step = tf.train.AdamOptimizer(learning_rate=0.00001).minimize(loss)
-kp = 0.2
-prev_to_delete = []
+    train_step = tf.train.AdamOptimizer(learning_rate=0.000005).minimize(loss)
+kp = 0.5
 print(out_dir)
 if not os.path.exists("./store/" + out_dir):
     os.makedirs("./store/" + out_dir, exist_ok=True)
@@ -460,7 +438,7 @@ open("./store/" + out_dir + "/check", 'a').close()
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     saver = tf.train.Saver(max_to_keep=None)
-    # saver.restore(sess, "./store/" + out_dir + "/" + str(14) + ".ckpt")
+    # saver.restore(sess, "./store/" + out_dir + "/" + str(12) + ".ckpt")
     for epoch in range(nb_epoch):
         gc.collect()
         my_file = Path("./store/" + out_dir + "/check")
@@ -478,10 +456,10 @@ with tf.Session() as sess:
         print("Adding shift")
         y_train_shift = []
         for i in range(len(y_train)):
-            if not scan_model:
+            if not scan_model: # and y_train[i][num_classes - 1] != 1
                 y_train_shift.append(y_train[i])
                 x_train_shift.append(x_train[i][shift: shift + seq_len])
-            if scan_model:  # y_train[i][num_classes - 1] == 1 or
+            if y_train[i][num_classes - 1] == 1 or scan_model:  # y_train[i][num_classes - 1] == 1 or
                 rshift = randint(0, 2 * shift)
                 x_train_shift.append(x_train[i][rshift: rshift + seq_len])
                 y_train_shift.append(y_train[i])
@@ -506,20 +484,50 @@ with tf.Session() as sess:
 
             ts = time.gmtime()
             print(str(epoch) + " [" + time.strftime("%Y-%m-%d %H:%M:%S", ts) + "] ", end="")
-            print("Training sn, sp, mcc: ", end="")
-            tp, tn, fp, fn, sn, sp, mcc = test_mcc(pred_tr, y_train_shift, scan_model)
-            print(format(sn, '.2f') + " " + format(sp, '.2f') + " " + format(mcc, '.2f') + " ", end="")
-            print("Validation: ", end="")
-            tp, tn, fp, fn, sn, sp, mcc = test_mcc(pred, y_test, scan_model)
-            print(format(sn, '.2f') + " " + format(sp, '.2f') + " " + format(mcc, '.2f') + " ")
+            print("Training auc: ", end="")
+            tr_auc = calc_auc(pred_tr, y_train_shift)
+            print(format(tr_auc, '.2f') + " ", end="")
+            print("Validation auc: ", end="")
+            val_auc = calc_auc(pred, y_test)
+            print(format(val_auc, '.2f') + " ")
             saver.save(sess, "./store/" + out_dir + "/" + str(epoch) + ".ckpt")
-            if mcc > best_mcc:  # and sp >= 0.99
+            if val_auc > best_auc:
                 best = epoch
                 print("------------------------------------best so far")
-                best_mcc = mcc
+                best_auc = val_auc
 
             print("Training set loss: " + str(trloss))
             print("Test set loss: " + str(tsloss))
+            real_scores = []
+            our_scores = []
+            with open('data/Supplemental_Table_S7.tsv') as file:
+                next(file)
+                for line in file:
+                    vals = line.split("\t")
+                    fa = vals[25].strip()
+                    if (vals[3] in background.keys()):
+                        bg = background[vals[3]]
+                        strand = bg[1]
+                        real_score = float(vals[23])
+                        if math.isnan(real_score):
+                            continue
+                        real_scores.append(real_score)
+
+                        if (strand == "+"):
+                            fa_bg = fasta[bg[0]][bg[2] - (half_size - 114): bg[2] - (half_size - 114) + seq_len]
+                            faf = fa_bg[:half_size - 49] + fa + fa_bg[half_size + 115:]
+                        else:
+                            fa_bg = fasta[bg[0]][bg[2] - (half_size - 49): bg[2] - (half_size - 49) + seq_len]
+                            fa_bg = str(Seq(fa_bg).reverse_complement())
+                            faf = fa_bg[:half_size - 114] + fa + fa_bg[half_size + 50:]
+
+                        predict = sess.run(out,
+                                           feed_dict={x: [cm.encode_seq(faf)], keep_prob: 1.0, in_training_mode: False})
+                        score = predict[0][0] - predict[0][1]
+                        score = math.log(1 + score / (1.0001 - score))
+                        our_scores.append(score)
+            corr = stats.pearsonr(np.asarray(our_scores), np.asarray(real_scores))[0]
+            print(corr)
 
         del (x_train_shift)
         del (x_test_shift)
