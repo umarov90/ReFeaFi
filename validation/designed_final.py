@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="3"
 import pickle
 import common as cm
 import tensorflow as tf

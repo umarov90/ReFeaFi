@@ -125,7 +125,7 @@ def main():
     half_size = 500
     batch_size = 128
 
-    dt1 = 0.5
+    dt1 = 0.8
     dt2 = args.T
     min_dist = 500
 
@@ -161,9 +161,7 @@ def main():
             fasta[chrn] = seq
             print(chrn + " - " + str(len(seq)))
 
-    good_chr = ["chrX", "chrY"]
-    for i in range(1, 23):
-        good_chr.append("chr" + str(i))
+    good_chr = fasta.keys()
     if args.C != "":
         good_chr = args.C.split(",")
     elif args.CE != "":
