@@ -1,9 +1,8 @@
 import os
-import common as cm
 import numpy as np
 import math
 
-os.chdir("/home/user/data/DeepRAG/analysis")
+os.chdir(open("../data_dir").read().strip())
 
 gl = {}
 gl["human"] = 249250621
@@ -17,7 +16,7 @@ def get_prompredict(organism):
     preds = []
     dt = 2.0
     mvs = []
-    with open("analysis/preds/" + organism + "_chr1_PPde.txt") as file:
+    with open("data/competitors/" + organism + "_chr1_PPde.txt") as file:
         for line in file:
             if(line.startswith("#")):
                 continue
@@ -27,7 +26,7 @@ def get_prompredict(organism):
                 preds.append([p, float(vals[10])])
             mvs.append(float(vals[10]))
 
-    with open("analysis/preds/" + organism + "_chr1_rev_PPde.txt") as file:
+    with open("data/competitors/" + organism + "_chr1_rev_PPde.txt") as file:
         for line in file:
             if(line.startswith("#")):
                 continue
@@ -46,14 +45,14 @@ def get_prompredict(organism):
 def get_ep3(organism):
     preds = []
     mvs = []
-    with open("analysis/preds/" + organism + "_chr1.fa.gff3") as file:
+    with open("data/competitors/" + organism + "_chr1.fa.gff3") as file:
         for line in file:
             vals = line.split("\t")
             p = int(vals[3]) + 200 
             preds.append([p, float(vals[5])])
             mvs.append(float(vals[5]))
 
-    with open("analysis/preds/" + organism + "_chr1_rev.fa.gff3") as file:
+    with open("data/competitors/" + organism + "_chr1_rev.fa.gff3") as file:
         for line in file:
             vals = line.split("\t")
             p = int(vals[3]) + 200   
@@ -67,7 +66,7 @@ def get_ep3(organism):
     #print("EP3 predictions: " + str(len(preds["+"]) + len(preds["-"])))
     return preds
 
-def get_deepag(fpath, type):
+def get_deeprefind(fpath, type):
     min_score = 100
     max_score = -100
     preds = []
@@ -92,43 +91,9 @@ def get_deepag(fpath, type):
     # preds.sort()
     return preds
 
-def get_ef():
-    preds = []
-    all_scores = []
-    with open("../data/enhancerfinder_step1_hg19.bed") as file:
-        for line in file:
-            if line.startswith("#"):
-                continue
-            vals = line.split("\t")
-            if vals[0] != "chr1":
-                continue
-            scores = vals[3].split(";")
-            score = 0.0
-            for s in scores:
-                score = score + float(s)
-            score = score / len(scores)
-            all_scores.append(score)
-            chrp = int(int(vals[1]) + (int(vals[2]) - int(vals[1])) / 2) - 1
-            #chrp = int(vals[1])
-            preds.append([chrp, score])
-    all_scores = np.asarray(all_scores)
-    return preds
-
-
-def get_promid(path):
-    proms = []
-    with open(path) as file:
-        for line in file:
-            vals = line.split("\t")
-            chrp = int(vals[7]) - 1
-            score = float(vals[4])
-            score = math.log(1 + score / (1.00001 - score))
-            proms.append([chrp, score])
-    return proms
-
 
 def get_results(organism, path):
-    deepag = get_deepag(organism + "_chr1.gff", type="promoter")
+    deepag = get_deeprefind(organism + "_chr1.gff", type="promoter")
     cage = get_cage(path, organism)
     print(organism + " : " + str(len(cage["chr1"])))
 
@@ -251,7 +216,7 @@ def get_basenji():
     for i in range(1, 249250621 - bin, bin):
         positions.append(i + bin / 2)
     k = 0
-    with open("data/basenji_scores.txt") as file:
+    with open("data/competitors/basenji_scores.txt") as file:
         for line in file:
             val = float(line)
             reg_elements.append([positions[k], val])
@@ -281,7 +246,7 @@ def get_cage(path, organism):
     return reg_elements
 
 
-os.chdir("/home/user/data/DeepRAG/")
+os.chdir(open("../data_dir").read().strip())
 # for filename in os.listdir("data/genomes/"):
 #     if filename.endswith(".fa"):
 #         print(filename)

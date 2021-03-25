@@ -6,7 +6,7 @@ import math
 import os
 import pyBigWig
 
-from validation import prom_elem
+from misc import prom_elem
 
 
 def find_nearest(array, value):

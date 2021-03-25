@@ -143,10 +143,12 @@ while len(negatives) < 1000:
 #
 # corr = stats.pearsonr(np.asarray(our_scores), np.asarray(cage_scores))[0]
 
+pk = 0
 print("Promoters: " + str(len(promoters)))
 with open("promoters.fa", 'w+') as f:
     for p in promoters:
-        f.write(">Promoter\n")
+        f.write(">Promoter" + str(pk) + "\n")
+        pk += 1
         f.write(p)
         f.write("\n")
 

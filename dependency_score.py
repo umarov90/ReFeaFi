@@ -4,13 +4,11 @@ import tensorflow as tf
 import os
 import math
 import numpy as np
-import common as cm
-from sklearn.metrics import roc_curve, auc
 import matplotlib
-import matplotlib.pyplot as plt
-matplotlib.use("agg")
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
+matplotlib.use("agg")
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+models_folder = "/home/user/data/DeepRAG/models/"
 
 def clean_seq(s):
     ns = s.upper()
@@ -37,20 +35,23 @@ def encode(enc_seq):
         return None
 
 
-def read_fasta(file, nn=0):
+def read_fasta(file, nn=0, sname=None):
     seq = ""
     fasta = []
     with open(file) as f:
         for line in f:
             if line.startswith(">"):
-                if len(seq) != 0:
+                if len(seq) != 0 and (sname is None or sname == pname):
                     seq = clean_seq(seq)
                     seq = "N" * nn + seq + "N" * nn
                     fasta.append(encode(seq))
+                    if sname is not None and sname == pname:
+                        return fasta
                 seq = ""
+                pname = line[1:].strip()
             else:
                 seq += line
-        if len(seq) != 0:
+        if len(seq) != 0 and (sname is None or sname == pname):
             seq = clean_seq(seq)
             seq = "N" * nn + seq + "N" * nn
             fasta.append(encode(seq))
@@ -67,39 +68,40 @@ def brun(sess, x, y, a, keep_prob, in_training_mode):
     return preds
 
 
-os.chdir("/home/user/data/DeepRAG")
-sequences = read_fasta(sys.argv[1])
-# sequences = sequences[:100]
-region1 = sys.argv[2].split(":")
-region1 = slice(int(region1[0]), int(region1[1]))
-region2 = sys.argv[3].split(":")
-region2 = slice(int(region2[0]), int(region2[1]))
-# region1 = slice(495, 505)
-# region2 = slice(160, 175)
-total_score = 0
-models_folder = "models/"
-new_graph = tf.Graph()
-with tf.Session(graph=new_graph) as sess:
-    tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING], models_folder + "model_predict")
-    saver = tf.train.Saver()
-    saver.restore(sess, models_folder + "model_predict/variables/variables")
-    input_x = tf.get_default_graph().get_tensor_by_name("input_prom:0")
-    y = tf.get_default_graph().get_tensor_by_name("output_prom:0")
-    kr = tf.get_default_graph().get_tensor_by_name("kr:0")
-    in_training_mode = tf.get_default_graph().get_tensor_by_name("in_training_mode:0")
-    for seq in sequences:
-        orig_score = sess.run(y, feed_dict={input_x: np.asarray([seq]), kr: 1.0, in_training_mode: False})[0][0]
-        seq1 = seq.copy()
-        seq1[region1] = [[0,0,0,0] for _ in range(len(seq1[region1]))]
-        rm1 = sess.run(y, feed_dict={input_x: np.asarray([seq1]), kr: 1.0, in_training_mode: False})[0][0]
-        seq2 = seq.copy()
-        seq2[region2] = [[0,0,0,0] for _ in range(len(seq2[region2]))]
-        rm2 = sess.run(y, feed_dict={input_x: np.asarray([seq2]), kr: 1.0, in_training_mode: False})[0][0]
-        seq12 = seq.copy()
-        seq12[region1] = [[0,0,0,0] for _ in range(len(seq12[region1]))]
-        seq12[region2] = [[0,0,0,0] for _ in range(len(seq12[region2]))]
-        rm12 = sess.run(y, feed_dict={input_x: np.asarray([seq]), kr: 1.0, in_training_mode: False})[0][0]
-        score = abs(orig_score - rm12) - abs(orig_score - rm1 + orig_score - rm2)
-        total_score += score
+def calculate_score(sequences, region1, region2, sname=None):
+    sequences = read_fasta(sequences, sname=sname)
+    region1 = region1.split(":")
+    region1 = slice(int(region1[0]), int(region1[1]))
+    region2 = region2.split(":")
+    region2 = slice(int(region2[0]), int(region2[1]))
+    total_score = 0
+    new_graph = tf.Graph()
+    with tf.Session(graph=new_graph) as sess:
+        tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING], models_folder + "model_predict")
+        saver = tf.train.Saver()
+        saver.restore(sess, models_folder + "model_predict/variables/variables")
+        input_x = tf.get_default_graph().get_tensor_by_name("input_prom:0")
+        y = tf.get_default_graph().get_tensor_by_name("output_prom:0")
+        kr = tf.get_default_graph().get_tensor_by_name("kr:0")
+        in_training_mode = tf.get_default_graph().get_tensor_by_name("in_training_mode:0")
+        for seq in sequences:
+            orig_score = sess.run(y, feed_dict={input_x: np.asarray([seq]), kr: 1.0, in_training_mode: False})[0][0]
+            seq1 = seq.copy()
+            seq1[region1] = [[0,0,0,0] for _ in range(len(seq1[region1]))]
+            rm1 = sess.run(y, feed_dict={input_x: np.asarray([seq1]), kr: 1.0, in_training_mode: False})[0][0]
+            seq2 = seq.copy()
+            seq2[region2] = [[0,0,0,0] for _ in range(len(seq2[region2]))]
+            rm2 = sess.run(y, feed_dict={input_x: np.asarray([seq2]), kr: 1.0, in_training_mode: False})[0][0]
+            seq12 = seq.copy()
+            seq12[region1] = [[0,0,0,0] for _ in range(len(seq12[region1]))]
+            seq12[region2] = [[0,0,0,0] for _ in range(len(seq12[region2]))]
+            rm12 = sess.run(y, feed_dict={input_x: np.asarray([seq]), kr: 1.0, in_training_mode: False})[0][0]
+            score = abs(orig_score - rm12) - abs(orig_score - rm1 + orig_score - rm2)
+            total_score += score
 
-print("Dependency score: " + str(total_score / len(sequences)))
+    print("Dependency score: " + str(total_score / len(sequences)))
+    return total_score / len(sequences)
+
+
+if __name__ == '__main__':
+    calculate_score(sys.argv[1], sys.argv[2], sys.argv[3])

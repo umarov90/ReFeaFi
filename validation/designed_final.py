@@ -2,12 +2,10 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]="3"
-import pickle
-import common as cm
+from validation import common as cm
 import tensorflow as tf
 import numpy as np
 import math
-import re
 from scipy import stats
 from Bio.Seq import Seq
 
@@ -18,9 +16,9 @@ scan_step = 1
 seq_len = 1001
 out = []
 
-os.chdir("/home/user/data/DeepRAG/")
-# fasta = cm.parse_genome("data/hg19.fa")
-fasta = pickle.load(open("fasta.p", "rb"))
+os.chdir(open("../data_dir").read().strip())
+fasta = cm.parse_genome("data/hg19.fa")
+# fasta = pickle.load(open("fasta.p", "rb"))
 
 background = {}
 background["RPLP0_CE_bg"] = ["chr12", "-", 120638861 - 1, 120639013 - 1]

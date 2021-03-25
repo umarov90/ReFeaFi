@@ -2,17 +2,11 @@
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
-import argparse
-import logging
-import math
-import pickle
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 import re
-import time
-import bisect
 import numpy as np
 import tensorflow as tf
-import common as cm
+from validation import common as cm
 
 seq_len = 1001
 half_size = 500
@@ -69,15 +63,10 @@ def clean_seq(s):
 
 
 
-data_folder = "/home/user/data/DeepRAG/"
-os.chdir(data_folder)
+os.chdir(open("../data_dir").read().strip())
 models_folder = "models/"
-
-print("DeepRAG v1.02")
 batch_size = 128
-
 min_dist = 100
-
 fasta, names = read_vista("data/vista.fa")
 
 scan_step = 1

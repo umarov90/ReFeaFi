@@ -4,7 +4,6 @@ os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import tensorflow as tf
 import numpy as np
-from math import sqrt
 from numpy import zeros
 import sys
 import re
@@ -12,13 +11,12 @@ import math
 import pickle
 from pathlib import Path
 import time
-import random
 from random import randint, shuffle
 from tensorflow.python.keras import layers
 import gc
 from sklearn.externals import joblib
 from sklearn.metrics import roc_curve, auc
-import common as cm
+from validation import common as cm
 from scipy import stats
 from Bio.Seq import Seq
 

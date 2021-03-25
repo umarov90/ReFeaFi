@@ -2,7 +2,7 @@
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="2"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 import argparse
 import logging
 import math
@@ -161,7 +161,12 @@ def main():
             fasta[chrn] = seq
             print(chrn + " - " + str(len(seq)))
 
-    good_chr = fasta.keys()
+    good_chr = list(fasta.keys())
+    for key in fasta.keys():
+        chr_num = key[3:]
+        if not chr_num.isdigit():
+            good_chr.remove(key)
+
     if args.C != "":
         good_chr = args.C.split(",")
     elif args.CE != "":
@@ -257,8 +262,7 @@ def main():
                 scores.sort(key=lambda x: x[1], reverse=True)
                 new_scores = pick(key, scores, dt2, min_dist)
                 rows.extend(new_scores)
-            print("Prediction complete for " + key + " chromosome. Predicted " + str(
-                len(rows)) + " regulatory regions." + " [" + time.strftime("%Y-%m-%d %H:%M:%S",
+            print("Prediction complete for " + key + " chromosome. [" + time.strftime("%Y-%m-%d %H:%M:%S",
                                                                            time.gmtime()) + "] ")
 
     strand_info = []

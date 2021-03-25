@@ -177,8 +177,7 @@ def parse_list(file):
     return snps, count
 
 
-data_folder = "/home/user/data/DeepRAG/"
-os.chdir(data_folder)
+os.chdir(open("../data_dir").read().strip())
 
 np.random.seed(2504)
 half_size = 200

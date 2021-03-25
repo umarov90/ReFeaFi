@@ -4,10 +4,9 @@ import tensorflow as tf
 import os
 import math
 import numpy as np
-import common as cm
-from sklearn.metrics import roc_curve, auc
+from validation import common as cm
 import matplotlib
-import matplotlib.pyplot as plt
+
 matplotlib.use("agg")
 os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
