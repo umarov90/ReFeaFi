@@ -4,7 +4,6 @@ matplotlib.use("agg")
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
-import string
 
 os.chdir("/home/user/data/DeepRAG/")
 matplotlib.rcParams.update({'font.size': 14})
@@ -23,3 +22,4 @@ g.set(ylim=(0, 0.2))
 plt.title("Average effect on score (" + group + ")")
 fig.tight_layout()
 plt.savefig("figures/importance_"+group+".png")
+plt.savefig("figures/importance_"+group+".svg")

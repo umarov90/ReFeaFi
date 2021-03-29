@@ -12,7 +12,6 @@ import time
 import bisect
 import numpy as np
 import tensorflow as tf
-from pathlib import Path
 
 
 # tf.logging.set_verbosity(tf.logging.ERROR)
@@ -120,14 +119,14 @@ def main():
                       ' -C chromosomes')
         exit()
 
-    print("DeepRAG v1.02")
+    print("ReFeaFi v1.02")
     sLen = 1001
     half_size = 500
     batch_size = 128
 
     dt1 = 0.8
     dt2 = args.T
-    min_dist = 500
+    min_dist = 10000
 
     test_mode = args.M == 1
     if test_mode:
@@ -162,10 +161,6 @@ def main():
             print(chrn + " - " + str(len(seq)))
 
     good_chr = list(fasta.keys())
-    for key in fasta.keys():
-        chr_num = key[3:]
-        if not chr_num.isdigit():
-            good_chr.remove(key)
 
     if args.C != "":
         good_chr = args.C.split(",")
@@ -288,7 +283,7 @@ def main():
 
     # row is [chr, position, score]
     for i, row in enumerate(rows):
-        out.append(row[0] + "\t" + "DeepRAG" + "\t" + "promoter/enhancer" + "\t" + str(
+        out.append(row[0] + "\t" + "ReFeaFi" + "\t" + "promoter/enhancer" + "\t" + str(
             row[1] - 100 + 1) + "\t" + str(
             row[1] + 100 + 2) + "\t" +
                    str(row[2]) + "\t" + strand_info[i] + "\t" + "." + "\t" +

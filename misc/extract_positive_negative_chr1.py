@@ -107,9 +107,9 @@ with open('data/human_permissive_enhancers_phase_1_and_2.bed') as file:
 print("Overlap:" + str(overlap))
 
 reg_elements.sort()
-while len(negatives) < 1000:
+while len(negatives) < 50000:
     try:
-        rp = randint(0, len(fasta[test_chr]))
+        rp = randint(1000000, len(fasta[test_chr]) - 1000000)
         gt = find_nearest(reg_elements, rp)
         if abs(rp - gt) > 500:
             seq = extract(test_chr, rp, fasta, seq_len, "+")

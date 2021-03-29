@@ -24,3 +24,4 @@ axs.set(ylabel='Relative Light Unit Ratio',
 plt.tight_layout()
 axs.xaxis.set_ticks_position('none')
 plt.savefig("figures/reporter_bar.png")
+plt.savefig("figures/reporter_bar.svg")

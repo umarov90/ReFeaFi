@@ -106,7 +106,7 @@ with tf.Session(graph=new_graph) as sess:
         # if len(vista_scores) > 1000:
         #     break
 
-    negative_set = read_fasta("negatives.fa")[:30000]  # len(vista_scores) * 20
+    negative_set = read_fasta("data/negatives.fa")[:30000]  # len(vista_scores) * 20
     negative_pred = cm.brun(sess, input_x, y, negative_set, kr, in_training_mode)
     negative_pred = [p[0] for p in negative_pred]
 

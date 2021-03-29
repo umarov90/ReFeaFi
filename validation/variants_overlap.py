@@ -1,15 +1,11 @@
 #!/usr/bin/env python
 import math
 import os
-import pickle
 import random
 import re
-import sys
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib_venn import venn3, venn2
 from liftover import get_lifter
 converter = get_lifter('hg38', 'hg19')
 

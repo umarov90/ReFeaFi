@@ -17,7 +17,7 @@ prompredict = np.genfromtxt("figures_data/dtv_prompredict_"+organism+".csv", del
 
 
 fig, ax = plt.subplots(figsize=(6,4))
-ax.plot(deeprag[:,1], deeprag[:,0], '-o', label='DeepREFind', markersize=0)
+ax.plot(deeprag[:,1], deeprag[:,0], '-o', label='ReFeaFi', markersize=0)
 ax.plot(ep3[:,1], ep3[:,0], '-o', label='EP3', markersize=0)
 ax.plot(prompredict[:,1], prompredict[:,0], '-o', label='PromPredict', markersize=0)
 ax.plot(basenji[:,1], basenji[:,0], '-o', label='Basenji', markersize=0)
