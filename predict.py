@@ -109,8 +109,7 @@ def pick(chr, scores, dt, minDist):
 
 
 def main():
-    data_folder = "/home/user/data/DeepRAG/"
-    os.chdir(data_folder)
+    os.chdir(open("../data_dir").read().strip())
     models_folder = "models/"
     args = get_options()
 

@@ -26,7 +26,7 @@ Optional parameters:
  - ```-C```: Comma separated list of chromosomes to use for promoter prediction, defaults to all.
  - ```-T```: Decision threshold for the prediction model, defaults to 0.5.
  
-The predictions for the 6 species from the study can be downloaded directly from [predictions.zip]() 
+The predictions for the 6 species from the study can be downloaded directly from [predictions.zip](https://drive.google.com/file/d/1OPilSt1-VDSWU71T8gXsWexk6qIVLfYU/view?usp=sharing) 
  
 To calculate dependency score used for the pair maps, run dependency_score.py:
 ```sh
@@ -35,7 +35,7 @@ python dependency_score.py promoters.fa 495:505 460:475
 Where first parameter is file with sequences and the next two represent regions of interest. 
 
 ## Reproducibility
-To train the models, download the [data]() and extract it to some location. Add this path (**parent folder of the data folder**) to the data_dir file in the project root. 
+To train the models, download the [data](https://drive.google.com/file/d/16oGfVIu7V6SDs_mbUEWDWimXkwjGKiba/view?usp=sharing) and extract it to some location. Add this path (**parent folder of the data folder**) to the data_dir file in the project root. 
 For example:
 
 /home/user/Desktop/test/   
@@ -56,7 +56,7 @@ Next, add new negatives to the negative set:
 ```sh
 python add_negatives.py
 ```
-Repeat these commands starting from training scan and prediction models several times to generate the final models. 
+Repeat these commands starting from training scan and prediction models several times to generate the final models. The generated data used to train our final models can be downloaded directly [training_data](https://drive.google.com/file/d/1sodoR286E4BuI_znd-_3z13STPpQEk1k/view?usp=sharing).
 
 Run scripts in 'validation' folder to reproduce the experiments described in the paper:
 * tf_case_study.py: Calculates dependency between JUND and BATF binding motifs inside the regulatory regions

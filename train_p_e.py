@@ -16,9 +16,6 @@ from tensorflow.python.keras import layers
 import gc
 from sklearn.externals import joblib
 from sklearn.metrics import roc_curve, auc
-from validation import common as cm
-from scipy import stats
-from Bio.Seq import Seq
 
 
 def find_nearest(array, value):
@@ -300,22 +297,22 @@ else:
             counter = counter + 1
     print("Done " + str(counter))
     # Gencode to avoid picking negatives
-    print("gencode")
-    counter = 0
-    with open("data/gencode.v34lift37.annotation.gff3") as file:
-        for line in file:
-            if line.startswith("#"):
-                continue
-            vals = line.split("\t")
-            chrn = vals[0]
-            if chrn not in good_chr:
-                continue
-            start = int(vals[3]) - 1
-            end = int(vals[4]) - 1
-            ga[chrn][start] = 5
-            ga[chrn][end] = 5
-            counter = counter + 1
-    print("Done " + str(counter))
+    # print("gencode")
+    # counter = 0
+    # with open("data/gencode.v34lift37.annotation.gff3") as file:
+    #     for line in file:
+    #         if line.startswith("#"):
+    #             continue
+    #         vals = line.split("\t")
+    #         chrn = vals[0]
+    #         if chrn not in good_chr:
+    #             continue
+    #         start = int(vals[3]) - 1
+    #         end = int(vals[4]) - 1
+    #         ga[chrn][start] = 5
+    #         ga[chrn][end] = 5
+    #         counter = counter + 1
+    # print("Done " + str(counter))
     print("promoters")
     counter = 0
     with open('data/hg19.cage_peak_phase1and2combined_coord.bed') as file:
@@ -404,12 +401,6 @@ y_train = np.asarray(y_train)
 x_test = np.asarray(x_test)
 y_test = np.asarray(y_test)
 
-fasta = pickle.load(open("fasta.p", "rb"))
-background = {}
-background["RPLP0_CE_bg"] = ["chr12", "-", 120638861 - 1, 120639013 - 1]
-background["ACTB_CE_bg"] = ["chr7",   "-", 5570183 - 1, 5570335 - 1]
-background["C14orf166_CE_bg"] = ["chr14", "+", 52456090 - 1,  52456242 - 1]
-
 num_classes = 2
 seq_len = 1001
 half_size = 500
@@ -496,36 +487,6 @@ with tf.Session() as sess:
 
             print("Training set loss: " + str(trloss))
             print("Test set loss: " + str(tsloss))
-            real_scores = []
-            our_scores = []
-            with open('data/Supplemental_Table_S7.tsv') as file:
-                next(file)
-                for line in file:
-                    vals = line.split("\t")
-                    fa = vals[25].strip()
-                    if (vals[3] in background.keys()):
-                        bg = background[vals[3]]
-                        strand = bg[1]
-                        real_score = float(vals[23])
-                        if math.isnan(real_score):
-                            continue
-                        real_scores.append(real_score)
-
-                        if (strand == "+"):
-                            fa_bg = fasta[bg[0]][bg[2] - (half_size - 114): bg[2] - (half_size - 114) + seq_len]
-                            faf = fa_bg[:half_size - 49] + fa + fa_bg[half_size + 115:]
-                        else:
-                            fa_bg = fasta[bg[0]][bg[2] - (half_size - 49): bg[2] - (half_size - 49) + seq_len]
-                            fa_bg = str(Seq(fa_bg).reverse_complement())
-                            faf = fa_bg[:half_size - 114] + fa + fa_bg[half_size + 50:]
-
-                        predict = sess.run(out,
-                                           feed_dict={x: [cm.encode_seq(faf)], keep_prob: 1.0, in_training_mode: False})
-                        score = predict[0][0] - predict[0][1]
-                        score = math.log(1 + score / (1.0001 - score))
-                        our_scores.append(score)
-            corr = stats.pearsonr(np.asarray(our_scores), np.asarray(real_scores))[0]
-            print(corr)
 
         del (x_train_shift)
         del (x_test_shift)
