@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="3"
-from validation import common as cm
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
+import common as cm
 import tensorflow as tf
 import numpy as np
 import math
