@@ -10,7 +10,7 @@ os.chdir(open("../data_dir").read().strip())
 matplotlib.rcParams.update({'font.size': 14})
 
 fig, ax = plt.subplots(figsize=(6,4))
-organisms = ["human", "mouse", "rat", "chicken",  "monkey"] #"dog",
+organisms = ["human", "mouse", "rat", "chicken", "dog", "monkey"]
 for organism in organisms:
        deeprag = np.genfromtxt("figures_data/dtv_refeafi_"+organism+".csv", delimiter=',')
        ax.plot(deeprag[:,1], deeprag[:,0], '-o', label=organism, markersize=0)

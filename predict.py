@@ -2,7 +2,7 @@
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="2"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 import argparse
 import logging
 import math
@@ -109,12 +109,12 @@ def pick(chr, scores, dt, minDist):
 
 
 def main():
-    os.chdir(open("data_dir").read().strip())
+    # os.chdir(open("data_dir").read().strip())
     models_folder = "models/"
     args = get_options()
 
     if None in [args.I, args.O]:
-        logging.error('Usage: deepag [-h] [-I [input]] [-O [output]] -D distance -T threshold '
+        logging.error('Usage: predict.py [-I [input]] [-O [output]] -D distance -T threshold '
                       ' -C chromosomes')
         exit()
 

@@ -118,14 +118,9 @@ def get_cage(path):
     return reg_elements
 
 
-# for filename in os.listdir("data/genomes/"):
-#     if filename.endswith(".fa"):
-#         print(filename)
-#         print(len(cm.parse_genome("data/genomes/" + filename, chr1=True)["chr1"]))
-
 get_results("human", "data/hg19.cage_peak_phase1and2combined_coord.bed", "data/genomes/hg19.fa")
 get_results("mouse", "data/cage/mm9.cage_peak_phase1and2combined_coord.bed", "data/genomes/mm9.fa")
 get_results("chicken", "data/cage/galGal5.cage_peak_coord.bed", "data/genomes/galGal5.fa")
 get_results("monkey", "data/cage/rheMac8.cage_peak_coord.bed", "data/genomes/rheMac8.fa")
 get_results("rat", "data/cage/rn6.cage_peak_coord.bed", "data/genomes/rn6.fa")
-# get_results("dog", "data/cage/canFam3.cage_peak_coord.bed", "canFam3.fa")
+get_results("dog", "data/cage/canFam3.cage_peak_coord.bed", "canFam3.fa")
