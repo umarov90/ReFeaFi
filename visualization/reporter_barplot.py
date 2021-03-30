@@ -5,7 +5,7 @@ import os
 import pandas as pd
 matplotlib.use("agg")
 
-os.chdir("/home/user/data/DeepRAG/")
+os.chdir(open("../data_dir").read().strip())
 matplotlib.rcParams.update({'font.size': 14})
 sns.set(style='ticks')
 fig, axs = plt.subplots(1,1,figsize=(12,3))

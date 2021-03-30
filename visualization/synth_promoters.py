@@ -6,7 +6,7 @@ import seaborn as sns
 from scipy import stats
 import os
 
-os.chdir("/home/user/data/DeepRAG/")
+os.chdir(open("../data_dir").read().strip())
 matplotlib.rcParams.update({'font.size': 14})
 
 e = np.genfromtxt("figures_data/synth.csv", delimiter=',')

@@ -215,8 +215,7 @@ def prep(ar):
     return flat
 
 
-data_folder = "/home/user/data/DeepRAG/"
-os.chdir(data_folder)
+os.chdir(open("data_dir").read().strip())
 
 good_chr = ["chrX", "chrY"]
 for i in range(1, 23):

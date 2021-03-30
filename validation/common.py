@@ -1,10 +1,6 @@
 import numpy as np
 import math
 import re
-import matplotlib
-import matplotlib.pyplot as plt
-matplotlib.use("agg")
-from sklearn.metrics import roc_curve, auc
 
 
 def brun(sess, x, y, a, keep_prob, in_training_mode):
@@ -70,7 +66,7 @@ def parse_genome(g, chr1=False):
                 if len(seq) != 0:
                     seq = clean_seq(seq)
                     fasta[chrn] = seq
-                    print(chrn + " - " + str(len(seq)))
+                    # print(chrn + " - " + str(len(seq)))
                     if chr1:
                         return fasta
                 chrn = line.strip()[1:]
@@ -84,7 +80,7 @@ def parse_genome(g, chr1=False):
         if len(seq) != 0:
             seq = clean_seq(seq)
             fasta[chrn] = seq
-            print(chrn + " - " + str(len(seq)))
+            # print(chrn + " - " + str(len(seq)))
     return fasta
 
 
@@ -109,22 +105,3 @@ def nuc_to_ind(nuc):
     elif nuc == "T":
         ind = 3
     return ind
-
-
-def draw_roc(ground_truth, total_scores, output, title):
-    sns.set(font_scale=1.3, style='ticks')
-    fpr, tpr, thresholds = roc_curve(ground_truth, total_scores)
-    roc_auc = auc(fpr, tpr)
-
-    plt.figure()
-    lw = 2
-    plt.plot(fpr, tpr, color='darkorange',
-             lw=lw, label='ROC curve (area = %0.2f)' % roc_auc)
-    plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title(title)
-    plt.legend(loc="lower right")
-    plt.savefig(output)

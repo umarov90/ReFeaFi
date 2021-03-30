@@ -6,18 +6,18 @@ import os
 from matplotlib.ticker import FormatStrFormatter
 import matplotlib.ticker as ticker
 
-os.chdir("/home/user/data/DeepRAG/")
+os.chdir(open("../data_dir").read().strip())
 matplotlib.rcParams.update({'font.size': 14})
 
 organism = "human"
-deeprag = np.genfromtxt("figures_data/dtv_deeprag_"+organism+".csv", delimiter=',')
+refeafi = np.genfromtxt("figures_data/dtv_refeafi_"+organism+"_chr1.csv", delimiter=',')
 ep3 = np.genfromtxt("figures_data/dtv_ep3_"+organism+".csv", delimiter=',')
 basenji = np.genfromtxt("figures_data/dtv_basenji7_"+organism+".csv", delimiter=',')
 prompredict = np.genfromtxt("figures_data/dtv_prompredict_"+organism+".csv", delimiter=',')
 
 
 fig, ax = plt.subplots(figsize=(6,4))
-ax.plot(deeprag[:,1], deeprag[:,0], '-o', label='ReFeaFi', markersize=0)
+ax.plot(refeafi[:,1], refeafi[:,0], '-o', label='ReFeaFi', markersize=0)
 ax.plot(ep3[:,1], ep3[:,0], '-o', label='EP3', markersize=0)
 ax.plot(prompredict[:,1], prompredict[:,0], '-o', label='PromPredict', markersize=0)
 ax.plot(basenji[:,1], basenji[:,0], '-o', label='Basenji', markersize=0)

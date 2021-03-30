@@ -2,15 +2,14 @@
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="3"
 import re
 import numpy as np
 import tensorflow as tf
-from validation import common as cm
+import common as cm
 
 seq_len = 1001
 half_size = 500
-
 
 def read_fasta(file):
     seq = ""
@@ -62,7 +61,6 @@ def clean_seq(s):
     return ns
 
 
-
 os.chdir(open("../data_dir").read().strip())
 models_folder = "models/"
 batch_size = 128
@@ -103,8 +101,6 @@ with tf.Session(graph=new_graph) as sess:
                 batch = []
             j = j + scan_step
         vista_scores.append(max(preds))
-        # if len(vista_scores) > 1000:
-        #     break
 
     negative_set = read_fasta("data/negatives.fa")[:30000]  # len(vista_scores) * 20
     negative_pred = cm.brun(sess, input_x, y, negative_set, kr, in_training_mode)

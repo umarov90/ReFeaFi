@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
-os.chdir("/home/user/data/DeepRAG/")
+os.chdir(open("../data_dir").read().strip())
 matplotlib.rcParams.update({'font.size': 14})
 
 group = "Enhancers" # Promoters

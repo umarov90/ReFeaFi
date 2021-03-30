@@ -32,16 +32,24 @@ To calculate dependency score used for the pair maps, run dependency_score.py:
 ```sh
 python dependency_score.py promoters.fa 495:505 460:475 
 ```
-Where first parameter is file with sequences and the next two represent regions of interest. 
+The first parameter is a FASTA file and the next two represent regions of interest. 
 
 ## Reproducibility
+Please install the following packages:
+```sh
+pip install biopython==1.70
+pip install liftover==1.0.1
+pip install pandas==1.0
+pip install matplotlib
+pip install seaborn
+```
 To train the models, download the [data](https://drive.google.com/file/d/16oGfVIu7V6SDs_mbUEWDWimXkwjGKiba/view?usp=sharing) and extract it to some location. Add this path (**parent folder of the data folder**) to the data_dir file in the project root. 
 For example:
 
 /home/user/Desktop/test/   
 put '/' at the end. 
 
-Run following commands to generate the models:
+Download human genome FASTA (hg19.fa) and put it into *data_dir*/data folder. Run following commands to generate the models:
 ```sh
 python train_p_e.py model_predict 0
 python train_p_e.py model_scan 1
@@ -56,13 +64,15 @@ Next, add new negatives to the negative set:
 ```sh
 python add_negatives.py
 ```
-Repeat these commands starting from training scan and prediction models several times to generate the final models. The generated data used to train our final models can be downloaded directly [training_data](https://drive.google.com/file/d/1sodoR286E4BuI_znd-_3z13STPpQEk1k/view?usp=sharing).
+Repeat these commands starting from training scan and prediction models several times to generate the final models. The data used to train our final models can be downloaded directly [training_data](https://drive.google.com/file/d/1sodoR286E4BuI_znd-_3z13STPpQEk1k/view?usp=sharing).
 
 Run scripts in 'validation' folder to reproduce the experiments described in the paper:
-* tf_case_study.py: Calculates dependency between JUND and BATF binding motifs inside the regulatory regions
+* performance_human_chr1.py: Performance comparison of ReFeaFi and alternative methods on human chromosome 1.
+* performance_species.py: Performance of ReFeaFi on 6 different organisms.
 * predict_vista.py: Discriminates between vista enhancers and random genomic regions
-* variants_overlap.py: Finds overlap of predictions with variants from ClinVar and GWAS
 * synthetic_promoters.py: Calculates correlations between measured expression and predicted score for the synthetic promoters
+* variants_overlap.py: Finds overlap of predictions with variants from ClinVar and GWAS.
+* tf_case_study.py: Calculates dependency between JUND and BATF binding motifs inside the regulatory regions
 
 The above-mentioned scripts generate output in the 'figures_data' folder which can be visualized by running scripts in the 'figures' folder of this repository. The produced images will be placed in the 'figures' folder inside the specified data_dir folder.
 

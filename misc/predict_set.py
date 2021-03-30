@@ -8,7 +8,7 @@ from validation import common as cm
 import matplotlib
 
 matplotlib.use("agg")
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 def clean_seq(s):

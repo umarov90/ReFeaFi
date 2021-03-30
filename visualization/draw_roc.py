@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 matplotlib.use("agg")
 from sklearn.metrics import roc_curve, auc
 
-os.chdir("/home/user/data/DeepRAG/")
+os.chdir(open("../data_dir").read().strip())
 matplotlib.rcParams.update({'font.size': 14})
 ground_truth = np.genfromtxt('figures_data/ground_truth.csv', delimiter=',')
 total_scores = np.genfromtxt('figures_data/total_scores.csv', delimiter=',')

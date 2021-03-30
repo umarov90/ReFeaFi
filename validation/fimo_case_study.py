@@ -1,5 +1,4 @@
-import dependency_score
-from random import randint
+import random
 import numpy as np
 from scipy.stats import ttest_ind
 import os
@@ -7,8 +6,13 @@ import tensorflow as tf
 import re
 import math
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-models_folder = "/home/user/data/DeepRAG/models/"
-fimo_path = "/home/user/data/DeepRAG/data/fimo_test/"
+
+random.seed(0)
+np.random.seed(0)
+tf.set_random_seed(0)
+
+os.chdir(open("../data_dir").read().strip())
+models_folder = "models/"
 
 def clean_seq(s):
     ns = s.upper()
@@ -101,62 +105,50 @@ with tf.Session(graph=new_graph) as sess:
     y = tf.get_default_graph().get_tensor_by_name("output_prom:0")
     kr = tf.get_default_graph().get_tensor_by_name("kr:0")
     in_training_mode = tf.get_default_graph().get_tensor_by_name("in_training_mode:0")
-    for filename in os.listdir(fimo_path):
-        sub = os.path.join(fimo_path, filename) + "/"
-        if not os.path.isdir(sub):
-            continue
-        try:
-            tfs = [d for d in os.listdir(sub) if os.path.isdir(sub + d)]
-            print("-"*100)
-            print(tfs[0] + " " + tfs[1])
-            with open(sub + "info.txt", 'r') as file:
-                data = file.read().strip()
-            print(data)
-            print("-" * 10)
-            tf1 = {}
-            tf2 = {}
-            with open(sub + tfs[0] + "/fimo.gff") as f:
-                for line in f:
-                    if line.startswith("#"):
-                        continue
-                    vals = line.split("\t")
-                    name = vals[0]
-                    if name in tf1.keys():
-                        continue
-                    region = vals[3] + ":" + vals[4]
-                    tf1[name] = region
+    sub = "data/MA0491.2:MA1634.1/"
+    tfs = [d for d in os.listdir(sub) if os.path.isdir(sub + d)]
+    print(tfs[0] + " " + tfs[1])
+    print("-" * 10)
+    tf1 = {}
+    tf2 = {}
+    with open(sub + tfs[0] + "/fimo.gff") as f:
+        for line in f:
+            if line.startswith("#"):
+                continue
+            vals = line.split("\t")
+            name = vals[0]
+            if name in tf1.keys():
+                continue
+            region = vals[3] + ":" + vals[4]
+            tf1[name] = region
 
-            with open(sub + tfs[1] + "/fimo.gff") as f:
-                for line in f:
-                    if line.startswith("#"):
-                        continue
-                    vals = line.split("\t")
-                    name = vals[0]
-                    if name in tf2.keys():
-                        continue
-                    region = vals[3] + ":" + vals[4]
-                    tf2[name] = region
+    with open(sub + tfs[1] + "/fimo.gff") as f:
+        for line in f:
+            if line.startswith("#"):
+                continue
+            vals = line.split("\t")
+            name = vals[0]
+            if name in tf2.keys():
+                continue
+            region = vals[3] + ":" + vals[4]
+            tf2[name] = region
 
-            scores1 = []
-            scores2 = []
-            common_keys = tf1.keys() & tf2.keys()
-            for key in common_keys:
-                score = calculate_score(fimo_path + "promoters.fa", tf1[key], tf2[key], key)
-                scores1.append(score)
-                size = int(tf2[key].split(":")[1]) - int(tf2[key].split(":")[0])
-                start = randint(0, 1001-size)
-                end = start + size
-                score = calculate_score(fimo_path + "promoters.fa", tf1[key], str(start)+":"+str(end), key)
-                scores2.append(score)
+    scores1 = []
+    scores2 = []
+    common_keys = tf1.keys() & tf2.keys()
+    for key in common_keys:
+        score = calculate_score("data/promoters.fa", tf1[key], tf2[key], key)
+        scores1.append(score)
+        size = int(tf2[key].split(":")[1]) - int(tf2[key].split(":")[0])
+        start = random.randint(0, 1001-size)
+        end = start + size
+        score = calculate_score("data/promoters.fa", tf1[key], str(start)+":"+str(end), key)
+        scores2.append(score)
 
-            scores1 = np.asarray(scores1)
-            scores2 = np.asarray(scores2)
-            print("scores 1 avg: " + str(np.mean(scores1)))
-            print("scores 2 avg: " + str(np.mean(scores2)))
-            t, p = ttest_ind(scores1, scores2)
-            print("p value: " + str(p))
-            with open(fimo_path + "pval.csv", "a+") as file:
-                file.write("\n" + str(p) + "," + data + "\n")
-            print("-" * 100)
-        except:
-            pass
+    scores1 = np.asarray(scores1)
+    scores2 = np.asarray(scores2)
+    print("scores 1 avg: " + str(np.mean(scores1)))
+    print("scores 2 avg: " + str(np.mean(scores2)))
+    t, p = ttest_ind(scores1, scores2)
+    print("p value: " + str(p))
+

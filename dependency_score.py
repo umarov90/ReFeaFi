@@ -8,7 +8,8 @@ import matplotlib
 
 matplotlib.use("agg")
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-models_folder = "/home/user/data/DeepRAG/models/"
+os.chdir(open("data_dir").read().strip())
+models_folder = "models/"
 
 def clean_seq(s):
     ns = s.upper()

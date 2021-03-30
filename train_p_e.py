@@ -215,8 +215,7 @@ def toseq(a):
             seq = seq + "N"
     return seq
 
-data_folder = "/home/user/data/DeepRAG/"
-os.chdir(data_folder)
+os.chdir(open("data_dir").read().strip())
 
 good_chr = ["chrX", "chrY"]
 for i in range(2, 23):
@@ -259,7 +258,7 @@ else:
     overlap = 0
     print("Parsing fasta")
     seq = ""
-    with open("data/hg19.fa") as f:  # .masked
+    with open("data/genomes/hg19.fa") as f:  # .masked
         for line in f:
             if line.startswith(">"):
                 if len(seq) != 0:
