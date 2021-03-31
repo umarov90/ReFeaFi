@@ -17,7 +17,7 @@ for the GPU version. In this case you also need to install CUDA9 and cuDNN7.
 ## Usage
 ReFeaFi can be run from the command line:
 ```sh
-python predict.py -I hg19.fa -O human_regulatory_regions.gff
+python predict.py -I hg19.fa -O human_regulatory_regions.gff -C chr20 -T 0.8 -D 5000
 ```
 Required parameters:
  - ```-I```: Input fasta file.
@@ -25,7 +25,7 @@ Required parameters:
 
 Optional parameters:
  - ```-D```: Minimum soft distance between the predicted TSS, defaults to 1000.
- - ```-C```: Comma separated list of chromosomes to use for promoter prediction, defaults to all.
+ - ```-C```: Comma separated list of chromosomes to use for prediction, defaults to all.
  - ```-T```: Decision threshold for the prediction model, defaults to 0.5.
  
 The predictions for the six species from the study can be downloaded directly from [predictions.zip](https://drive.google.com/file/d/1t3qF35SdimANuzRNstGpse3OoWhc1i_X/view?usp=sharing) 
@@ -45,7 +45,7 @@ pip install pandas==1.0
 pip install matplotlib
 pip install seaborn
 ```
-To train the models, download the [data](https://drive.google.com/file/d/1Fq7wuePRcPxIfbBDoKQO9OcXvnYYa5s_/view?usp=sharing) and extract it to some location. Add this path (**parent folder of the data folder**) to the data_dir file in the project root. 
+To train the models, download the [data](https://drive.google.com/file/d/1rZpXoBhoWdlofIZBXZojw8oZaVkayBMo/view?usp=sharing) and extract it to some location. Add this path (**parent folder of the data folder**) to the data_dir file in the project root. 
 For example:
 
 /home/user/Desktop/test/   

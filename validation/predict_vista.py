@@ -6,7 +6,8 @@ os.environ["CUDA_VISIBLE_DEVICES"]="3"
 import re
 import numpy as np
 import tensorflow as tf
-import common as cm
+import validation.common as cm
+import random
 
 seq_len = 1001
 half_size = 500
@@ -39,7 +40,7 @@ def read_vista(file):
                 if len(seq) != 0:
                     seq = clean_seq(seq)
                     if len(seq) < seq_len:
-                        seq = "N" * half_size + seq + "N" * half_size
+                        seq = rand_seq(half_size) + seq + rand_seq(half_size)
                     fasta.append(seq)
                 names.append(line.strip()[1:])
                 seq = ""
@@ -48,9 +49,17 @@ def read_vista(file):
         if len(seq) != 0:
             seq = clean_seq(seq)
             if len(seq) < seq_len:
-                seq = "N" * half_size + seq + "N" * half_size
+                seq = rand_seq(half_size) + seq + rand_seq(half_size)
             fasta.append(seq)
     return fasta, names
+
+def rand_seq(n):
+    rseq = ""
+    nuclist = ["A", "C", "G", "T"]
+    for i in range(n):
+        ind = random.randint(0,3)
+        rseq = rseq + nuclist[ind]
+    return rseq
 
 
 def clean_seq(s):
@@ -83,7 +92,7 @@ with tf.Session(graph=new_graph) as sess:
     kr = tf.get_default_graph().get_tensor_by_name("kr:0")
     in_training_mode = tf.get_default_graph().get_tensor_by_name("in_training_mode:0")
     for i in range(len(fasta)):
-        if "Human|chr1:" not in names[i]:
+        if "chr1:" not in names[i]:
             continue
         fa = fasta[i]
         j = half_size
@@ -102,7 +111,7 @@ with tf.Session(graph=new_graph) as sess:
             j = j + scan_step
         vista_scores.append(max(preds))
 
-    negative_set = read_fasta("data/negatives.fa")[:30000]  # len(vista_scores) * 20
+    negative_set = read_fasta("data/negatives.fa")[:len(vista_scores) * 100]
     negative_pred = cm.brun(sess, input_x, y, negative_set, kr, in_training_mode)
     negative_pred = [p[0] for p in negative_pred]
 

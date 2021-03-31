@@ -79,9 +79,6 @@ with open('data/hg19.cage_peak_phase1and2combined_coord.bed') as file:
             chrp = int(vals[7]) - 1
         elif strand == "-":
             chrp = int(vals[7]) - 1
-            continue
-        # if strand != "+":
-        #     continue
         seq = extract(chrn, chrp, fasta, seq_len, strand)
         promoters.append(seq)
         reg_elements.append(chrp)
@@ -101,18 +98,20 @@ with open('data/human_permissive_enhancers_phase_1_and_2.bed') as file:
         gt = find_nearest(reg_elements, chrp)
         if abs(chrp - gt) < 500:
             overlap += 1
-        # reg_elements.append(chrp)
+        reg_elements.append(chrp)
         reg_elements_scores[chrp] = int(vals[4])
 
 print("Overlap:" + str(overlap))
 
 reg_elements.sort()
-while len(negatives) < 50000:
+while len(negatives) < 30000:
     try:
         rp = randint(1000000, len(fasta[test_chr]) - 1000000)
         gt = find_nearest(reg_elements, rp)
         if abs(rp - gt) > 500:
             seq = extract(test_chr, rp, fasta, seq_len, "+")
+            if "N" in seq:
+                continue
             negatives.append(seq)
     except:
         pass

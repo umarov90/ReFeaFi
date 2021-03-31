@@ -42,7 +42,7 @@ def get_results(organism, path, fasta_file):
         dtv.append(str(res[1]) + "," + str(fpr))
         if round(res[1], 2) == 0.50:
             best_line = str(res[1]) + "\t" + str(res[2]) + "\t" + str(res[3]) + "\t" + str(res[4]) + "\t" + str(fpr)
-            print(best_line)
+            # print(best_line)
     print(res[5])
     print(res[6])
 
@@ -123,4 +123,4 @@ get_results("mouse", "data/cage/mm9.cage_peak_phase1and2combined_coord.bed", "da
 get_results("chicken", "data/cage/galGal5.cage_peak_coord.bed", "data/genomes/galGal5.fa")
 get_results("monkey", "data/cage/rheMac8.cage_peak_coord.bed", "data/genomes/rheMac8.fa")
 get_results("rat", "data/cage/rn6.cage_peak_coord.bed", "data/genomes/rn6.fa")
-get_results("dog", "data/cage/canFam3.cage_peak_coord.bed", "canFam3.fa")
+get_results("dog", "data/cage/canFam3.cage_peak_coord.bed", "data/genomes/canFam3.fa")

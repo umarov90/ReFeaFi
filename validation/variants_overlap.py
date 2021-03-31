@@ -9,6 +9,7 @@ import pandas as pd
 from liftover import get_lifter
 converter = get_lifter('hg38', 'hg19')
 
+
 def find_nearest(array, value):
     idx = np.searchsorted(array, value, side="left")
     if idx > 0 and (idx == len(array) or math.fabs(value - array[idx - 1]) < math.fabs(value - array[idx])):
@@ -77,9 +78,10 @@ def parse_gff(file):
 def compare(preds, vcf, reg_elements, dt):
     overlap = 0
     count = 0
-    for key, value in preds.items():
+    for key in keys:
         reg = [i[0] for i in reg_elements[key]]
         reg.sort()
+        value = preds[key]
         value.sort(key=lambda x: x[1])
         reg = np.asarray(reg)
         cg = vcf[key]
@@ -106,7 +108,7 @@ def compare(preds, vcf, reg_elements, dt):
 def compare_base(vcf, reg_elements):
     overlap = 0
     count = 0
-    for key, value in preds.items():
+    for key in keys:
         reg = [i[0] for i in reg_elements[key]]
         reg.sort()
         count = count + len(reg)
@@ -180,7 +182,7 @@ half_size = 200
 reg_elements = {}
 reg_count = 0
 
-input_file = "human.gff"
+input_file = "predictions/human.gff"
 
 with open("data/hg19.cage_peak_phase1and2combined_coord.bed") as file:
     for line in file:
@@ -218,7 +220,9 @@ print("CAGE: " + str(reg_count))
 
 margin = 50
 preds = parse_gct(input_file)
-
+keys = ["chrX", "chrY"]
+for i in range(1, 23):
+    keys.append("chr" + str(i))
 fig, axs = plt.subplots(1, figsize=(8,8))
 
 overlap_clinvar_high, count_clinvar_high = compare(preds, snps_clinvar, reg_elements, 0.99)
@@ -251,7 +255,7 @@ overlap_gwas_cage, count_gwas_cage = compare_base(snps_gwas, reg_elements)
 print("-"*20)
 
 pr = {}
-for key, value in preds.items():
+for key in keys:
     pr[key] = []
     while len(pr[key]) < len(reg_elements[key]):
         rn = random.randint(0, reg_elements[key][-1][0])
