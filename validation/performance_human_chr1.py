@@ -100,7 +100,7 @@ def calculate_results(organism, path):
             best_line = str(res[1]) + "\t" + str(res[2]) + "\t" + str(res[3]) + "\t" + str(res[4]) + "\t" + str(fpr)
             print(best_line)
 
-    with open("figures_data/dtv_refeafi_"+organism+".csv", 'w+') as f:
+    with open("figures_data/dtv_refeafi_"+organism+"_chr1.csv", 'w+') as f:
         for l in dtv:
             f.write(str(l) + "\n")
 
