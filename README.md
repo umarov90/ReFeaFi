@@ -45,7 +45,7 @@ pip install pandas==1.0
 pip install matplotlib
 pip install seaborn
 ```
-To train the models, download the [data](https://drive.google.com/file/d/1rZpXoBhoWdlofIZBXZojw8oZaVkayBMo/view?usp=sharing) and extract it to some location. Add this path (**parent folder of the data folder**) to the data_dir file in the project root. 
+To train the models, download the [data](https://drive.google.com/file/d/1e6OPPZCOSMTA-ef5nF5xC_heLyklSntW/view?usp=sharing) and extract it to some location. Add this path (**parent folder of the data folder**) to the data_dir file in the project root. 
 For example:
 
 /home/user/Desktop/test/   
