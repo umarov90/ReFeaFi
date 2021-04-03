@@ -17,7 +17,7 @@ for the GPU version. In this case you also need to install CUDA9 and cuDNN7.
 ## Usage
 ReFeaFi can be run from the command line:
 ```sh
-python predict.py -I hg19.fa -O human_regulatory_regions.gff -C chr20 -T 0.8 -D 5000
+python predict.py -I hg19.fa -O human_regulatory_regions.gff -C chr20 -T 0.8
 ```
 Required parameters:
  - ```-I```: Input fasta file.
