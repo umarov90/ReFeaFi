@@ -63,7 +63,18 @@ For example:
 /home/user/Desktop/test/   
 put '/' at the end. 
 
-To train the models from scratch, put human genome FASTA (hg19.fa) into *data_dir*/data/genomes/ folder. Run the following commands to generate the models:
+Run scripts in 'validation' folder to reproduce the experiments described in the paper:
+* performance_human_chr1.py: Performance comparison of ReFeaFi and alternative methods on human chromosome 1
+* performance_species.py: Performance of ReFeaFi on 6 different organisms
+* predict_vista.py: Discrimination between vista enhancers and random genomic regions
+* synthetic_promoters.py: Calculates correlations between measured expression and predicted score for the synthetic promoters
+* variants_overlap.py: Finds overlap of predictions with variants from ClinVar and GWAS
+* tf_case_study.py: Calculates dependency between JUND and BATF binding motifs inside the regulatory regions
+
+The above-mentioned scripts generate output in the 'figures_data' folder which can be visualized by running scripts in the 'figures' folder of this repository. The produced images will be placed in the 'figures' folder inside the specified *data_dir* folder.
+
+The following section describes how to train the models from scratch. Please note that it is a long process and requires a good workstation.  
+Put the human genome FASTA (hg19.fa) into *data_dir*/data/genomes/ folder. Run the following commands to generate the models:
 ```sh
 python train_p_e.py model_predict 0
 python train_p_e.py model_scan 1
@@ -79,16 +90,6 @@ Next, add new negatives to the negative set:
 python add_negatives.py
 ```
 Repeat these commands starting from training scan and prediction models several times to generate the final models. The data used to train our final models can be downloaded directly: [training_data](https://drive.google.com/file/d/1sodoR286E4BuI_znd-_3z13STPpQEk1k/view?usp=sharing). This archive should be extracted into the *data_dir* folder.
-
-Run scripts in 'validation' folder to reproduce the experiments described in the paper:
-* performance_human_chr1.py: Performance comparison of ReFeaFi and alternative methods on human chromosome 1
-* performance_species.py: Performance of ReFeaFi on 6 different organisms
-* predict_vista.py: Discrimination between vista enhancers and random genomic regions
-* synthetic_promoters.py: Calculates correlations between measured expression and predicted score for the synthetic promoters
-* variants_overlap.py: Finds overlap of predictions with variants from ClinVar and GWAS
-* tf_case_study.py: Calculates dependency between JUND and BATF binding motifs inside the regulatory regions
-
-The above-mentioned scripts generate output in the 'figures_data' folder which can be visualized by running scripts in the 'figures' folder of this repository. The produced images will be placed in the 'figures' folder inside the specified *data_dir* folder.
 
 The model analysis (Mutation maps, Pairs maps, and important motifs) was performed using scripts from the following repository:
 https://github.com/umarov90/PromStudy
