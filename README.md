@@ -5,12 +5,12 @@ Workflow of ReFeaFi for genome-wide regulatory elements prediction. The scan mod
 ## Installation
 
 Simply clone this repository and run predict.py to use the pre-trained models. 
-ReFeaFi requires ```tensorflow==1.7.0```. First install Conda and create the environment:
+ReFeaFi requires ```tensorflow==1.7.0```. First, install Conda and create the environment:
 ```sh
 conda create -n ReFeaFi python=3.6
 conda activate ReFeaFi
 ```
-Next install tensorflow:
+Next, install tensorflow:
 ```sh
 conda install -c conda-forge tensorflow==1.7.0
 ```
@@ -18,7 +18,7 @@ OR
 ```sh
 conda install -c conda-forge tensorflow-gpu==1.7.0
 ```
-for the GPU version. In this case you also need to install CUDA10 and cuDNN7:
+for the GPU version. In this case, you also need to install CUDA9 and cuDNN7:
 ```sh
 conda install cudatoolkit=9.0
 conda install cudnn=7.1.2=cuda9.0_0
@@ -27,7 +27,7 @@ conda install cudnn=7.1.2=cuda9.0_0
 ReFeaFi can be run from the command line. Download and extract [hg19.fa](http://hgdownload.cse.ucsc.edu/goldenpath/hg19/bigZips/hg19.fa.gz). 
 The following command predicts regulatory elements on chromosome 20: 
 ```sh
-python predict.py -I path/to/hg19.fa -O human_regulatory_regions.gff -C chr20  -T 0.8 -D 10000 -TS 0.95
+python predict.py -I path/to/hg19.fa -O human_regulatory_regions.gff -C chr20  -T 0.8 -D 1000 -TS 0.95
 ```
 Required parameters:
  - ```-I```: Input fasta file.
@@ -57,13 +57,12 @@ pip install pandas==0.24.2
 pip install matplotlib
 pip install seaborn
 ```
-Download the [data](https://drive.google.com/file/d/1e6OPPZCOSMTA-ef5nF5xC_heLyklSntW/view?usp=sharing) and extract it to some location. Add this path (**parent folder of the data folder**) to the data_dir file in the project root. 
+Download the [data](https://www.dropbox.com/s/i7s5e5z7tqr2u54/ReFeaFi_data.zip?dl=1) ([Mirror](https://drive.google.com/file/d/1e6OPPZCOSMTA-ef5nF5xC_heLyklSntW/view?usp=sharing)) and extract it to some location. Add this path (**parent folder of the data folder**) to the data_dir file in the project root. 
 For example:
 
 /home/user/Desktop/test/   
 put '/' at the end. 
 
-The models were trained using an iterative process, thus the training take a very long time. The data used to train our final models can be downloaded directly: [training_data](https://drive.google.com/file/d/1sodoR286E4BuI_znd-_3z13STPpQEk1k/view?usp=sharing). 
 To train the models from scratch, put human genome FASTA (hg19.fa) into *data_dir*/data/genomes/ folder. Run the following commands to generate the models:
 ```sh
 python train_p_e.py model_predict 0
@@ -79,7 +78,7 @@ Next, add new negatives to the negative set:
 ```sh
 python add_negatives.py
 ```
-Repeat these commands starting from training scan and prediction models several times to generate the final models. 
+Repeat these commands starting from training scan and prediction models several times to generate the final models. The data used to train our final models can be downloaded directly: [training_data](https://drive.google.com/file/d/1sodoR286E4BuI_znd-_3z13STPpQEk1k/view?usp=sharing). This archive should be extracted into the *data_dir* folder.
 
 Run scripts in 'validation' folder to reproduce the experiments described in the paper:
 * performance_human_chr1.py: Performance comparison of ReFeaFi and alternative methods on human chromosome 1
