@@ -65,7 +65,7 @@ put '/' at the end.
 
 Run scripts in 'validation' folder to reproduce the experiments described in the paper:
 * performance_human_chr1.py: Performance comparison of ReFeaFi and alternative methods on human chromosome 1
-* performance_species.py: Performance of ReFeaFi on 6 different organisms
+* performance_species.py: Performance of ReFeaFi on 6 different organisms (requires genomes of species downloaded and extracted  to *data_dir*/data/genomes/ folder)
 * predict_vista.py: Discrimination between vista enhancers and random genomic regions
 * synthetic_promoters.py: Calculates correlations between measured expression and predicted score for the synthetic promoters
 * variants_overlap.py: Finds overlap of predictions with variants from ClinVar and GWAS

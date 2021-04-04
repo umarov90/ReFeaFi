@@ -6,7 +6,7 @@ os.environ["CUDA_VISIBLE_DEVICES"]="0"
 import re
 import numpy as np
 import tensorflow as tf
-import validation.common as cm
+import common as cm
 import random
 
 seq_len = 1001
