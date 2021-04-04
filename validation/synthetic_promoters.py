@@ -17,7 +17,7 @@ seq_len = 1001
 out = []
 
 os.chdir(open("../data_dir").read().strip())
-fasta = cm.parse_genome("data/hg19.fa")
+fasta = cm.parse_genome("data/genomes/hg19.fa")
 # fasta = pickle.load(open("fasta.p", "rb"))
 
 background = {}
@@ -28,9 +28,9 @@ our_scores = []
 real_scores = []
 new_graph = tf.Graph()
 with tf.Session(graph=new_graph) as sess:
-    tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING], "model_predict")
+    tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING], "models/model_predict")
     saver = tf.train.Saver()
-    saver.restore(sess, "model_predict/variables/variables")
+    saver.restore(sess, "models/model_predict/variables/variables")
     input_x = tf.get_default_graph().get_tensor_by_name("input_prom:0")
     y = tf.get_default_graph().get_tensor_by_name("output_prom:0")
     kr = tf.get_default_graph().get_tensor_by_name("kr:0")
