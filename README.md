@@ -18,7 +18,8 @@ OR
 ```sh
 conda install -c conda-forge tensorflow-gpu==1.7.0
 ```
-for the GPU version. In this case, you also need to install CUDA9 and cuDNN7:
+for the GPU version. If that does not work, try removing "-c conda-forge".  
+If you chose the GPU version, please also install CUDA9 and cuDNN7:
 ```sh
 conda install cudatoolkit=9.0
 conda install cudnn=7.1.2=cuda9.0_0
