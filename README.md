@@ -58,10 +58,10 @@ pip install pandas==0.24.2
 pip install matplotlib
 pip install seaborn
 ```
-Download the [data](https://www.dropbox.com/s/i7s5e5z7tqr2u54/ReFeaFi_data.zip?dl=1) ([Mirror](https://drive.google.com/file/d/1e6OPPZCOSMTA-ef5nF5xC_heLyklSntW/view?usp=sharing)) and extract it to some location. Add this path (**parent folder of the data folder**) to the data_dir file in the project root. 
+Download the [data](https://www.dropbox.com/s/i7s5e5z7tqr2u54/ReFeaFi_data.zip?dl=1) ([Mirror](https://drive.google.com/file/d/1e6OPPZCOSMTA-ef5nF5xC_heLyklSntW/view?usp=sharing)) and extract it to some location. Add this path to the data_dir file in the project root. 
 For example:
 
-/home/user/Desktop/test/   
+/home/user/Desktop/ReFeaFi_data/   
 put '/' at the end. 
 
 Run scripts in 'validation' folder to reproduce the experiments described in the paper:
