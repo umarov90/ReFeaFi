@@ -1,24 +1,18 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import tensorflow as tf
 import numpy as np
-from math import sqrt
 from numpy import zeros
 import sys
 import re
 import math
-
 import pickle
 from pathlib import Path
 import time
 from random import randint
-from random import uniform
 from random import shuffle
-from tensorflow.contrib import rnn
-from tensorflow.python.keras import initializers
 from tensorflow.python.keras import layers
-from tensorflow.python.keras import regularizers
 import gc
 
 BATCH_NORM_DECAY = 0.997

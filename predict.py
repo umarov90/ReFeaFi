@@ -26,10 +26,18 @@ def get_options():
     parser.add_argument('-M', metavar='mode', default=1,
                         type=int, choices=range(0, 2),
                         help='')
+    parser.add_argument('-D', metavar='distance', default=1000,
+                        type=int, choices=range(50, 20000),
+                        help='minimum soft distance between the predicted TSS '
+                             ', defaults to 1000')
     parser.add_argument('-T', metavar='threshold', default=0.5,
                         type=float,
                         help='decision threshold for the prediction model'
                              ', defaults to 0.5')
+    parser.add_argument('-TS', metavar='scan_threshold', default=0.8,
+                        type=float,
+                        help='decision threshold for the scan model'
+                             ', defaults to 0.8')
     parser.add_argument('-C', metavar='chromosomes', default="",
                         type=str, help='comma separated list of chromosomes to use for promoter prediction '
                                        ', defaults to all chromosomes')
@@ -123,9 +131,9 @@ def main():
     half_size = 500
     batch_size = 128
 
-    dt1 = 0.8
+    dt1 = args.TS
     dt2 = args.T
-    min_dist = 10000
+    min_dist = args.D
 
     test_mode = args.M == 1
     if test_mode:
